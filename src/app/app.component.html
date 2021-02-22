@@ -8,13 +8,13 @@
 </head>
 <body>
 
-<div class="container">
+<header class="container">
+  <!--  Navigation menu-->
   <nav class="navbar has-shadow is-white">
     <!--  logo-->
     <div class="navbar-brand">
       <a href="/" class="navbar-item">
-        <!--        <img src="assets/logo.png" style="max-height: 70px" class="py-2 px-2" alt="site logo">-->
-        Home
+        <img src="assets/logo.jpg" style="max-height: 65px" class="is-rounded py-2 px-2" alt="site logo">
       </a>
 
       <a class="navbar-burger" (click)="toggleNavbar()" [class.is-active]="navbarBurgerActive">
@@ -44,15 +44,36 @@
       </div>
     </div>
   </nav>
-</div>
 
-<div class="container">
-  <section class="section">
-    <p>Lorem impsiLorem impsiLorem impsiLorem impsiLorem impsiLorem impsiLorem impsiLorem impsiLorem impsiLorem
-      impsiLorem
-      impsiLorem impsiLorem impsiLorem impsiLorem impsiLorem impsi</p>
-  </section>
-</div>
+  <!--Breadcrumbs (path from site root to current page)-->
+  <div class="section pt-4 pb-0">
+    <nav class="breadcrumb has-arrow-separator">
+      <ul>
+        <li><a class="has-text-grey">Articles</a></li>
+        <li class="is-active"><a>Writing a Kubernetes operator in Go</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container">
+    <div class="columns">
+      <div class="column">
+        <p class="title">Writing a Kubernetes operator</p>
+        <p class="subtitle">Go edition</p>
+      </div>
+      <div class="column">
+        <p class="title">Writing a Kubernetes operator</p>
+        <p class="subtitle">Java edition</p>
+      </div>
+      <div class="column">
+        <p class="title">Writing a Kubernetes operator</p>
+        <p class="subtitle">Rust edition</p>
+      </div>
+    </div>
+  </div>
+</section>
 
 </body>
 </html>
