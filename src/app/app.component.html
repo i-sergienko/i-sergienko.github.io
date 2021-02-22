@@ -8,72 +8,8 @@
 </head>
 <body>
 
-<header class="container">
-  <!--  Navigation menu-->
-  <nav class="navbar has-shadow is-white">
-    <!--  logo-->
-    <div class="navbar-brand">
-      <a href="/" class="navbar-item">
-        <img src="assets/logo.jpg" style="max-height: 65px" class="is-rounded py-2 px-2" alt="site logo">
-      </a>
-
-      <a class="navbar-burger" (click)="toggleNavbar()" [class.is-active]="navbarBurgerActive">
-        <span></span>
-        <span></span>
-        <span></span>
-      </a>
-    </div>
-
-    <div class="navbar-menu" id="nav-links" [class.is-active]="navbarBurgerActive">
-      <div class="navbar-start">
-        <a href="/" class="navbar-item">About</a>
-        <a href="/" class="navbar-item">Articles</a>
-      </div>
-
-      <div class="navbar-end">
-
-        <a href="https://github.com/i-sergienko" class="navbar-item">
-          <img src="assets/github_logo.png" class="px-2" style="max-height: 30px" alt="GitHub logo">
-        </a>
-        <a href="https://www.linkedin.com/in/ivan-sergienko-b066a8108/" class="navbar-item">
-          <img src="assets/linkedin_logo.webp" style="max-height: 50px" alt="LinkedIn logo">
-        </a>
-        <a href="https://leetcode.com/is_1337/" class="navbar-item">
-          <img src="assets/leetcode_logo.png" class="px-2" style="max-height: 30px" alt="LeetCode logo">
-        </a>
-      </div>
-    </div>
-  </nav>
-
-  <!--Breadcrumbs (path from site root to current page)-->
-  <div class="section pt-4 pb-0">
-    <nav class="breadcrumb has-arrow-separator">
-      <ul>
-        <li><a class="has-text-grey">Articles</a></li>
-        <li class="is-active"><a>Writing a Kubernetes operator in Go</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
-
-<section class="section">
-  <div class="container">
-    <div class="columns">
-      <div class="column">
-        <p class="title">Writing a Kubernetes operator</p>
-        <p class="subtitle">Go edition</p>
-      </div>
-      <div class="column">
-        <p class="title">Writing a Kubernetes operator</p>
-        <p class="subtitle">Java edition</p>
-      </div>
-      <div class="column">
-        <p class="title">Writing a Kubernetes operator</p>
-        <p class="subtitle">Rust edition</p>
-      </div>
-    </div>
-  </div>
-</section>
+<app-navigation-menu></app-navigation-menu>
+<app-article-list></app-article-list>
 
 </body>
 </html>

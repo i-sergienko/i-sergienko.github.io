@@ -7,9 +7,4 @@ import {Component} from '@angular/core';
 })
 export class AppComponent {
   title = 'ivan-sergienko-blog';
-  navbarBurgerActive = false;
-
-  toggleNavbar(): void {
-    this.navbarBurgerActive = !this.navbarBurgerActive;
-  }
 }
