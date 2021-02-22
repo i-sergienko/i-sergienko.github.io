@@ -13,12 +13,18 @@
     <!--  logo-->
     <div class="navbar-brand">
       <a href="/" class="navbar-item">
-<!--        <img src="assets/logo.png" style="max-height: 70px" class="py-2 px-2" alt="site logo">-->
+        <!--        <img src="assets/logo.png" style="max-height: 70px" class="py-2 px-2" alt="site logo">-->
         Home
+      </a>
+
+      <a class="navbar-burger" (click)="toggleNavbar()" [class.is-active]="navbarBurgerActive">
+        <span></span>
+        <span></span>
+        <span></span>
       </a>
     </div>
 
-    <div class="navbar-menu" id="nav-links">
+    <div class="navbar-menu" id="nav-links" [class.is-active]="navbarBurgerActive">
       <div class="navbar-start">
         <a href="/" class="navbar-item">About</a>
         <a href="/" class="navbar-item">Articles</a>
@@ -27,13 +33,13 @@
       <div class="navbar-end">
 
         <a href="https://github.com/i-sergienko" class="navbar-item">
-          <img src="assets/github_logo.png" style="max-height: 30px" alt="GitHub logo">
+          <img src="assets/github_logo.png" class="px-2" style="max-height: 30px" alt="GitHub logo">
         </a>
         <a href="https://www.linkedin.com/in/ivan-sergienko-b066a8108/" class="navbar-item">
           <img src="assets/linkedin_logo.webp" style="max-height: 50px" alt="LinkedIn logo">
         </a>
         <a href="https://leetcode.com/is_1337/" class="navbar-item">
-          <img src="assets/leetcode_logo.png" style="max-height: 30px" alt="LeetCode logo">
+          <img src="assets/leetcode_logo.png" class="px-2" style="max-height: 30px" alt="LeetCode logo">
         </a>
       </div>
     </div>
