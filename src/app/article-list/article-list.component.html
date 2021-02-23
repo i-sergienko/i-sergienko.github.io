@@ -1,17 +1,15 @@
 <section class="section">
   <div class="container">
     <div class="columns">
-      <div class="column">
-        <p class="title">Writing a Kubernetes operator</p>
-        <p class="subtitle">Go edition</p>
-      </div>
-      <div class="column">
-        <p class="title">Writing a Kubernetes operator</p>
-        <p class="subtitle">Java edition</p>
-      </div>
-      <div class="column">
-        <p class="title">Writing a Kubernetes operator</p>
-        <p class="subtitle">Rust edition</p>
+      <div *ngFor="let preview of articlePreviews" class="column">
+        <div class="message">
+          <header class="message-header">
+            <p>{{preview.title}}</p>
+          </header>
+          <main class="message-body">
+            <p class="content">{{preview.description}}</p>
+          </main>
+        </div>
       </div>
     </div>
   </div>

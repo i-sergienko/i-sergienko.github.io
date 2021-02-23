@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
+import {ArticlePreview} from '../model/article-preview';
+import {ArticleService} from '../article.service';
 
 @Component({
   selector: 'app-article-list',
@@ -6,10 +8,13 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./article-list.component.css']
 })
 export class ArticleListComponent implements OnInit {
+  articlePreviews: ArticlePreview[];
 
-  constructor() { }
-
-  ngOnInit(): void {
+  constructor(private articleService: ArticleService) {
   }
 
+  ngOnInit(): void {
+    this.articleService.getArticlePreviews()
+      .subscribe(previews => this.articlePreviews = previews);
+  }
 }
