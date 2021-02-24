@@ -1,4 +1,4 @@
-<section class="section">
+<section *ngIf="articlePreviews.length > 0" class="section">
   <div class="container">
     <div class="columns">
       <div *ngFor="let preview of articlePreviews" class="column">
@@ -11,6 +11,14 @@
           </main>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<section *ngIf="articlePreviews.length == 0" class="hero is-white is-fullheight-with-navbar">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <p class="title">Nothing here yet, but stay tuned - I'll add something soon.</p>
     </div>
   </div>
 </section>

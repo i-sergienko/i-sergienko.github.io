@@ -10,7 +10,7 @@ export class ArticleService {
     {title: 'Writing a Kubernetes operator', description: 'Go edition'},
     {title: 'Writing a Kubernetes operator', description: 'Java edition'},
     {title: 'Writing a Kubernetes operator', description: 'Rust edition'}
-  ];
+  ]; // Placeholder articles. To be replaced with real ones from github repo
 
   constructor() {
   }
