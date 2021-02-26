@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {Router} from '@angular/router';
+import { faHome } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'app-navigation-menu',
@@ -8,6 +9,8 @@ import {Router} from '@angular/router';
 })
 export class NavigationMenuComponent implements OnInit {
   navbarBurgerActive = false;
+  // FontAwesome Icons
+  faHome = faHome;
 
   constructor(public router: Router) { }
 
