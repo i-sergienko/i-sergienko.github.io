@@ -8,6 +8,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AboutComponent } from './about/about.component';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { NotFoundComponent } from './not-found/not-found.component';
+import { ArticleComponent } from './article/article.component';
 
 @NgModule({
   declarations: [
@@ -15,7 +16,8 @@ import { NotFoundComponent } from './not-found/not-found.component';
     ArticleListComponent,
     NavigationMenuComponent,
     AboutComponent,
-    NotFoundComponent
+    NotFoundComponent,
+    ArticleComponent
   ],
   imports: [
     BrowserModule,
