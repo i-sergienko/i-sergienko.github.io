@@ -1,7 +1,9 @@
 import {Injectable} from '@angular/core';
 import {ArticlePreview} from './model/article-preview';
-import {Observable, of} from 'rxjs';
+import {Observable, of, throwError} from 'rxjs';
+import {catchError, map, retry} from 'rxjs/operators';
 import md from 'markdown-it';
+import {HttpClient} from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +16,7 @@ export class ArticleService {
     {title: 'Writing a Kubernetes operator', description: 'Rust edition'}
   ]; // Placeholder articles. To be replaced with real ones from github repo
 
-  constructor() {
+  constructor(private http: HttpClient) {
   }
 
   getArticlePreviews(): Observable<ArticlePreview[]> {
@@ -22,6 +24,7 @@ export class ArticleService {
   }
 
   getArticleByName(articleName: string): Observable<string> {
-    return of(this.markdown.render('```TODO fetch post by name from assets```'));
+    return this.http.get(`/assets/posts/${articleName}.md`, {responseType: 'text'})
+      .pipe(map((article: string) => this.markdown.render(article)));
   }
 }

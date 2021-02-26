@@ -17,7 +17,7 @@ export class ArticleComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const articleName = this.route.snapshot.paramMap.get('id');
+    const articleName = this.route.snapshot.paramMap.get('name');
 
     this.articleService.getArticleByName(articleName)
       .subscribe(article => this.renderedArticle = article);
