@@ -1,6 +1,8 @@
 import {Component, OnInit} from '@angular/core';
 import {ArticleService} from '../article.service';
 import {ActivatedRoute} from '@angular/router';
+import {ArticlePreview} from '../model/article-preview';
+import {Article} from '../model/article';
 
 @Component({
   selector: 'app-article',
@@ -8,7 +10,7 @@ import {ActivatedRoute} from '@angular/router';
   styleUrls: ['./article.component.css']
 })
 export class ArticleComponent implements OnInit {
-  renderedArticle: string;
+  article: Article;
 
   constructor(
     private route: ActivatedRoute,
@@ -20,7 +22,7 @@ export class ArticleComponent implements OnInit {
     const articleName = this.route.snapshot.paramMap.get('name');
 
     this.articleService.getArticleByName(articleName)
-      .subscribe(article => this.renderedArticle = article);
+      .subscribe(article => this.article = article);
   }
 
 }
