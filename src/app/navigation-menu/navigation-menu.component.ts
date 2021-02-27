@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {Router} from '@angular/router';
-import { faHome } from '@fortawesome/free-solid-svg-icons';
+import {faHome, faMoon, faRadiationAlt, faSun, IconDefinition} from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'app-navigation-menu',
@@ -10,15 +10,52 @@ import { faHome } from '@fortawesome/free-solid-svg-icons';
 export class NavigationMenuComponent implements OnInit {
   navbarBurgerActive = false;
   // FontAwesome Icons
-  faHome = faHome;
+  faHome: IconDefinition = faHome;
+  // Active theme
+  theme: ThemeConfig;
 
-  constructor(public router: Router) { }
+  private themes: Dictionary<ThemeConfig>;
+
+  constructor(public router: Router) {
+  }
 
   ngOnInit(): void {
+    this.themes = new Dictionary<ThemeConfig>();
+    this.themes.light = {
+      cssPath: '/assets/css/bulma.min.css',
+      nextThemeName: 'dark',
+      nextThemeIcon: faSun
+    };
+    this.themes.dark = {
+      cssPath: '/assets/css/darkly.min.css',
+      nextThemeName: 'nuclear',
+      nextThemeIcon: faMoon
+    };
+    this.themes.nuclear = {
+      cssPath: '/assets/css/nuclear.min.css',
+      nextThemeName: 'light',
+      nextThemeIcon: faRadiationAlt
+    };
+
+    this.switchTheme('light');
   }
 
   toggleNavbar(): void {
     this.navbarBurgerActive = !this.navbarBurgerActive;
   }
 
+  switchTheme(themeName: string): void {
+    this.theme = this.themes[themeName];
+    document.getElementById('global-theme').setAttribute('href', this.theme.cssPath);
+  }
+}
+
+class Dictionary<T> {
+  [key: string]: T;
+}
+
+export interface ThemeConfig {
+  cssPath: string;
+  nextThemeName: string;
+  nextThemeIcon: IconDefinition;
 }

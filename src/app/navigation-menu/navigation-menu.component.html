@@ -27,8 +27,12 @@
                  [class.is-active]="router.url == '/articles'">Tech Blog</a>
             </div>
 
-            <div class="navbar-end">
+            <span class="navbar-item center has-text-centered has-text-warning"
+                  (click)="switchTheme(theme.nextThemeName)">
+                <fa-icon class="fa-2x" [icon]="theme.nextThemeIcon"></fa-icon>
+            </span>
 
+            <div class="navbar-end">
               <a href="https://github.com/i-sergienko" class="navbar-item">
                 <img src="assets/github_logo.png" class="px-2" style="max-height: 30px" alt="GitHub logo">
                 GitHub
