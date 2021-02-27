@@ -1,7 +1,7 @@
 <section *ngIf="articlePreviews && articlePreviews.length > 0" class="section">
   <div class="container">
     <div class="columns">
-      <div *ngFor="let preview of articlePreviews" class="column">
+      <div *ngFor="let preview of articlePreviews" class="column is-family-code">
         <a routerLink="/articles/{{preview.name}}">
           <div class="message">
             <header class="message-header">
