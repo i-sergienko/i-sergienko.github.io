@@ -37,7 +37,7 @@ export class NavigationMenuComponent implements OnInit {
       nextThemeIcon: faRadiationAlt
     };
 
-    this.switchTheme('light');
+    this.switchTheme(localStorage.getItem('theme') || 'dark');
   }
 
   toggleNavbar(): void {
@@ -46,6 +46,7 @@ export class NavigationMenuComponent implements OnInit {
 
   switchTheme(themeName: string): void {
     this.theme = this.themes[themeName];
+    localStorage.setItem('theme', themeName);
     document.getElementById('global-theme').setAttribute('href', this.theme.cssPath);
   }
 }

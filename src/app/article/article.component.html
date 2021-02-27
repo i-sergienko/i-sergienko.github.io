@@ -1,5 +1,5 @@
 <section class="section">
-  <div class="container">
+  <div *ngIf="article" class="container">
     <p class="title has-text-centered">{{article.metadata.title}}</p>
     <p class="subtitle has-text-centered">{{article.metadata.description}}</p>
     <div class="content box" [innerHTML]="article.content"></div>
