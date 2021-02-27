@@ -31,8 +31,8 @@ Because of that, in an ever-changing environment your desired state can still be
 ___  
 ### So which one do I pick?
 In my opinion, it all comes down to a couple of questions:
-1. Do your resources need to be reconciled or not? Is it possible that the environment changes without you triggering the changes, and you'll have to re-apply the configuration manually? Or are your resources static - once created, you can be sure they aren't going anywhere?
-2. Do your applications running inside Kubernetes need to be able to manage the resources in question? Or do you plan on defining all of them manually in advance?
+1. Do your resources need to be reconciled or not? Is it possible that the environment changes without you knowing about it, and you'll have to re-apply the configuration manually? Or are your resources static - once created, you can be sure they aren't going anywhere?
+2. Do your applications running inside Kubernetes need to be able to manage the resources in question? Or do you plan on defining all of the resources manually in advance?
 
 If you're sure the resources are static and don't require constant observation, either option works - **Terraform** will do just as fine as **k8s operators**.  
 If you do need "autopilot" capabilities and constant observation - pick a **Kubernetes Operator** if one is available - **Terraform** won't do the trick.
