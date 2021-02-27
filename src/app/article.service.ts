@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {ArticlePreview} from './model/article-preview';
-import {Observable, of} from 'rxjs';
+import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 import md from 'markdown-it';
 import {HttpClient} from '@angular/common/http';
@@ -10,17 +10,12 @@ import {HttpClient} from '@angular/common/http';
 })
 export class ArticleService {
   private markdown = md();
-  private ARTICLES: ArticlePreview[] = [
-    {title: 'Writing a Kubernetes operator', description: 'Go edition'},
-    {title: 'Writing a Kubernetes operator', description: 'Java edition'},
-    {title: 'Writing a Kubernetes operator', description: 'Rust edition'}
-  ]; // Placeholder articles. To be replaced with real ones from github repo
 
   constructor(private http: HttpClient) {
   }
 
-  getArticlePreviews(): Observable<ArticlePreview[]> {
-    return of(this.ARTICLES);
+  getArticleMetadata(): Observable<ArticlePreview[]> {
+    return this.http.get<ArticlePreview[]>(`/assets/posts/articles.json`, {responseType: 'json'});
   }
 
   getArticleByName(articleName: string): Observable<string> {

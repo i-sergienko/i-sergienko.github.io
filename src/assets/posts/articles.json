@@ -1,0 +1,9 @@
+[
+  {
+    "name": "terraform-vs-kuberentes-operators",
+    "title": "Terraform vs. Kubernetes Operators",
+    "description": "Which one should you pick when both seem do do the trick?",
+    "format": "md",
+    "path": "/assets/posts/terraform-vs-kuberentes-operators.md"
+  }
+]

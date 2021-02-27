@@ -14,7 +14,7 @@ export class ArticleListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.articleService.getArticlePreviews()
+    this.articleService.getArticleMetadata()
       .subscribe(previews => this.articlePreviews = previews);
   }
 }

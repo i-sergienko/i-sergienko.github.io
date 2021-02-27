@@ -2,14 +2,16 @@
   <div class="container">
     <div class="columns">
       <div *ngFor="let preview of articlePreviews" class="column">
-        <div class="message">
-          <header class="message-header">
-            <p>{{preview.title}}</p>
-          </header>
-          <main class="message-body">
-            <p class="content">{{preview.description}}</p>
-          </main>
-        </div>
+        <a routerLink="/articles/{{preview.name}}">
+          <div class="message">
+            <header class="message-header">
+              <p>{{preview.title}}</p>
+            </header>
+            <main class="message-body">
+              <p class="content">{{preview.description}}</p>
+            </main>
+          </div>
+        </a>
       </div>
     </div>
   </div>
