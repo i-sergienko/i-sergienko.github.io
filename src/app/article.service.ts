@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {ArticlePreview} from './model/article-preview';
-import {Observable, of, throwError} from 'rxjs';
-import {catchError, map, retry} from 'rxjs/operators';
+import {Observable, of} from 'rxjs';
+import {map} from 'rxjs/operators';
 import md from 'markdown-it';
 import {HttpClient} from '@angular/common/http';
 
