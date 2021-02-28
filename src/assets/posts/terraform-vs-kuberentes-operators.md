@@ -43,7 +43,7 @@ ___
 ### Example: managing users in a third-party SaaS (e.g. [Auth0](https://auth0.com/))
 Imagine that you have a system where the authentication/authorization is managed by a third party. You would like to define your user accounts and their permissions in code, so that you don't have to constantly switch between different web consoles to manage all of your cloud resources, and can instead store everything in one Git repository.  
   
-Assuming there are both a **Terraform** provider and a **Kubernetes Operator** that can manage the user/permission management, which one should you pick?  
+Assuming there are both a **Terraform** provider and a **Kubernetes Operator** that can manage users/permissions, which one should you pick?  
   
 If your users are more or less static - they are defined in config and are not modified externally while you're not looking - you don't really need the reconciliation capabilities of a **Kubernetes Operator**
 . So both options work, at first glance.  
