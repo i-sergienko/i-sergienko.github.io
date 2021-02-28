@@ -1,6 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {Router} from '@angular/router';
 import {faHome, faMoon, faRadiationAlt, faSun, IconDefinition} from '@fortawesome/free-solid-svg-icons';
+import {faGithub, faLinkedin} from '@fortawesome/free-brands-svg-icons';
 
 @Component({
   selector: 'app-navigation-menu',
@@ -11,6 +12,8 @@ export class NavigationMenuComponent implements OnInit {
   navbarBurgerActive = false;
   // FontAwesome Icons
   faHome: IconDefinition = faHome;
+  faGithub: IconDefinition = faGithub;
+  faLinkedin: IconDefinition = faLinkedin;
   // Active theme
   theme: ThemeConfig;
 
