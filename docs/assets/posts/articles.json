@@ -1,5 +1,12 @@
 [
   {
+    "name": "kubernetes-operator",
+    "title": "Kubernetes Operators in layman's terms",
+    "description": "A 10-minute introduction to Kubernetes Operators. Understand what a Kubernetes Operator is, what it consists of and how to start writing one.",
+    "format": "md",
+    "path": "/assets/posts/kubernetes-operator.md"
+  },
+  {
     "name": "terraform-vs-kuberentes-operators",
     "title": "Terraform vs. Kubernetes Operators",
     "description": "Which one should you pick when both seem to do the trick?",
