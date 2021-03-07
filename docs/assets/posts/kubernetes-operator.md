@@ -108,7 +108,7 @@ However, did a real banana pop out of the screen the moment I ran `kubectl apply
 
 ---
 ##### Custom Controllers
-There is one piece of the puzzle missing - Kubernetes doesn't know what to do with the new resource, it just saves it with the rest of the manifests in it's internal database.  
+There is one piece of the puzzle missing - Kubernetes doesn't know what to do with the new resource, it just saves it with the rest of the manifests in its internal database.  
 This is not very useful by itself - we normally use manifests to inform **k8s** of the desired state of the world, so it can do something about it.
   
 The missing piece is called a **Custom Controller**, and it's an application that you'll have to write yourself.  
@@ -119,12 +119,14 @@ A Controller is responsible for reacting to changes to a particular resource typ
 * When you create a `CronJob` resource, [CronJob controller](https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/cronjob/cronjob_controller.go) is responsible for launching the jobs at the right time.
 * When you create an `Ingress` resource, your [Nginx Ingress Controller](https://kubernetes.github.io/ingress-nginx/) (assuming you use it) will react to it by defining Nginx route configurations.  
   
-With the exception of Nginx Ingress Controller, you didn't deploy any of these controller apps yourself. They are, in fact, included into the Kubernetes Master Plane codebase, which is why these resources are supported by default.  
+With the exception of Nginx Ingress Controller, you didn't deploy any of these controller apps yourself. They are, in fact, included into the Kubernetes Control Plane codebase, which is why these resources are supported by default.  
   
 ___
 
 To write your own Controller to react to your Custom Resources, you will need to integrate with the Kubernetes API.  
 You could write your Controller in any programming language - there are no restrictions, since it's just another application that you will deploy to your cluster.  
+  
+The Controller application typically doesn't need its own database - all the information it needs to handle the resources will be stored in Kubernetes Control Plane, so your Controller app is stateless. 
   
 Here are some of the more popular languages/frameworks being used for that purpose:
 * Golang / [Operator SDK](https://sdk.operatorframework.io/docs/building-operators/golang/) - as of this writing, the most popular choice. Kubernetes ecosystem (unsurprisingly) is heavily biased towards Go, and Operator SDK is the most mature framework up to date. I found it well-structured and easy to use, but some limitations of the language made it seem impractical for certain use cases.
@@ -133,6 +135,10 @@ Here are some of the more popular languages/frameworks being used for that purpo
   
 This list is not exhaustive, and there might be other popular solutions by the time you're reading this.  
 
-You also don't have to use a framework to write an operator - there are [Kubernetes client libraries](https://kubernetes.io/docs/reference/using-api/client-libraries/) for other languages, which you could use directly, and in the worst case you could always write your own integration. Frameworks do make the task significantly easier, though.
+You also don't have to use a framework to write a controller - there are [Kubernetes client libraries](https://kubernetes.io/docs/reference/using-api/client-libraries/) for other languages, which you could use directly, and in the worst case you could always write your own integration. Frameworks do make the task significantly easier, though.
   
-I'm planning on writing tutorials for Operator creation using the aforementioned frameworks, so stay tuned 😊
+I'm planning on writing tutorials for Custom Controller creation using the aforementioned frameworks, so stay tuned 😊
+
+___
+### Conclusion:
+`Custom Resource + Custom Controller = Kubernetes Operator`
