@@ -24,5 +24,12 @@ The typical workflow looks like this:
 * Developer (you) creates a custom resource, by first describing it in a YAML file and then running `kubectl apply -f resource.yaml`.
 * `kubectl` sends the resource to Kubernetes Master Plane - specifically, to the API server.
 * The API server stores the resource in its internal database (typically [etcd](https://etcd.io/), but this is not important here).
-* A Custom Controller application (built and deployed by you) running in the cluster subscribes to the events happening to specific Custom Resource types.
-* The Custom Controller handles all the creation/update/delete events happening to the Custom Resource. The Controller might or might not modify the resources it's working on.
+* Custom Controller application (built and deployed by you) running in the cluster subscribes to events happening to specific Custom Resource types.
+* Custom Controller handles all the creation/update/delete events happening to the Custom Resource. The Controller might or might not modify the resources it's working on.
+  
+Basically this is all a Controller does - react to resources being created/updated/deleted, by subscribing to events.  
+What your controller does as the result of handling an event is limited only by your imagination (and your ability to turn it into reality) - typically it might call some external APIs (e.g. to create resources in the cloud, trigger a webhook, etc.), or it might create more Kubernetes resources (if you're building on existing Kubernetes abstractions).  
+  
+Aside from reacting to events many controllers also implement a **Reconciliation Loop** - that is, they repeatedly (by cron) read the resources of the target type, and check if any resources require any actions. This might be helpful if the state of your resource can change without you explicitly modifying it through `kubectl`.  
+For example, if your custom `CloudVirtualMachine` resource requires that at all times there is a virtual machine instance with specific configuration running in the cloud (e.g. in AWS), your Custom Controller could every minute check if the virtual machine is really running, and if the machine crashes, the controller could restart it by issuing an API call to the cloud provider.
+  
