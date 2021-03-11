@@ -22,7 +22,7 @@ Let's see how the pieces fit together:
   
 The typical workflow looks like this:  
 * Developer (you) creates a custom resource, by first describing it in a YAML file and then running `kubectl apply -f resource.yaml`.
-* `kubectl` sends the resource to Kubernetes Master Plane - specifically, to the API server.
+* `kubectl` sends the resource to Kubernetes Control Plane - specifically, to the API server.
 * The API server stores the resource in its internal database (typically [etcd](https://etcd.io/), but this is not important here).
 * Custom Controller application (built and deployed by you) running in the cluster subscribes to events happening to specific Custom Resource types.
 * Custom Controller handles all the creation/update/delete events happening to the Custom Resource. The Controller might or might not modify the resources it's working on.
@@ -38,11 +38,11 @@ The diagram below demonstrates the **Reconciliation Loop**:
 ![Reconciliation loop](/assets/posts/images/java-operator-tutorial/reconcile.png)  
   
 You might ask:  
-> Why would we need the reconciliation loop if we already have event handling? How is it possible for resource state to change without our command?
+> Why would we need a reconciliation loop if we already have event handling? How is it possible for resource state to change without our command?
 
 The reason is that it's possible for us not to have complete control over the actual state of certain resources.  
   
-Imagine that you have a `CloudVirtualMachine` resource, that spins up a virtual machine instance in your favorite cloud provider.  Your custom controller could create the VM by invoking the cloud provider API as a reaction to the resource creation event.  
+Imagine that you have a `CloudVirtualMachine` resource, that spins up a virtual machine instance in your favorite cloud provider.  Your Custom Controller could create the VM by invoking the cloud provider API as a reaction to the resource creation event.  
 But what happens if the virtual machine crashes?  It will most certainly not invoke Kubernetes API to report the error, and now you have a discrepancy between the desired state recorded in your k8s cluster (your custom resource, saying there should be a VM running) and the actual state in the cloud (no VM running).  
 Without the reconciliation logic the VM just stays crashed, but if the Controller app checks the actual state periodically, it will notice the discrepancy and will be able to restart the crashed VM, or create a new one.  
   
