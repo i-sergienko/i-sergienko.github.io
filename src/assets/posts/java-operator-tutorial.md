@@ -299,6 +299,28 @@ Make sure that at some point you return some other option, otherwise the control
 * Returning `UpdateControl.updateStatusSubResource(resource)` allows to update the `status` field. This will not generate any new update events, so it's a valid "exit" point.  
 * Returning `UpdateControl.updateCustomResourceAndStatus(resource)` allows to update both `spec` and `status`. This will generate update events, hence the infinite loop risk - take the same care as with the `UpdateControl.updateCustomResource` option.
   
+So what does our example controller do on creation/update event? Let's take a look:  
+```
+    public UpdateControl<Banana> createOrUpdateResource(Banana resource, Context<Banana> context) {
+        if (resource.getStatus() == null || !resource.getSpec().getColor().equals(resource.getStatus().getColor())) {
+            BananaStatus status = new BananaStatus();
+            status.setColor(resource.getSpec().getColor());
+            resource.setStatus(status);
+
+            paintBanana(resource);
+
+            return UpdateControl.updateStatusSubResource(resource);
+        } else {
+            return UpdateControl.noUpdate();
+        }
+    }
+```
+If the resource `status` is empty, it means the Banana hasn't been processed (painted the right color) yet.  
+If the `status.color` is not empty, but is different from `spec.color`, that means we have to re-paint the Banana.  
+In both of these cases we set `status.color` to the correct value, and simulate some work by invoking the `paintBanana` method. `paintBanana` will just sleep for 3 seconds, but in a real use case this is where you'd do your useful work - e.g. invoke external APIs, create new k8s objects, etc.  
+After we've processed our resource (painted the banana), we return `UpdateControl.updateStatusSubResource(resource)` so that the `status` field for the resource is updated in the cluster and next time we get an event for it, we remember we've already processed it.
+  
+If the `status` is present and `status.color == spec.color`, we don't need to do any work or update anything - hence, we just return `UpdateControl.noUpdate()`.  
   
 ##### Deletion event handling
 The second method's signature looks like this: `DeleteControl deleteResource(Banana resource, Context<Banana> context)`  
@@ -310,3 +332,4 @@ The parameters are the same as in `createOrUpdateResource`, but the result type 
   
 Read about [finalizers](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#finalizers) if you're curious how it's possible for a Custom Controller to prevent resource deletion.  
   
+In our simple implementation we're just going to always return `DEFAULT_DELETE`, allowing to delete the `Banana` resource.  
