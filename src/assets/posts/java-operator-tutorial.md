@@ -222,3 +222,4 @@ Also note the annotations:
 
 These annotations will be used by the Java Operator SDK framework to subscribe to events related to `Banana` resources.
   
+This is all the setup we need for the model classes - when we connect to the cluster, the application will be able to deserialize `Banana` resources using these 3 classes.
