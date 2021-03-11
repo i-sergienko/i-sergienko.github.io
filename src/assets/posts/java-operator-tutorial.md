@@ -15,7 +15,7 @@ What I am going to teach you:
 ___
 #### Kubernetes Controllers under the hood
 In the [previous article](/articles/kubernetes-operator) you saw that it's possible to create your own resource types, and that Kubernetes stores the custom resources internally, but doesn't otherwise react to their creation.  
-To handle the custom resource creation/modification/deletion events, you have to write your own Custom Controller.  
+To handle the custom resource creation/modification/deletion events, you have to write your own Custom Controller.
   
 Let's see how the pieces fit together:  
 ![Custom Controller diagram](/assets/posts/images/java-operator-tutorial/custom_controller.png)  
@@ -26,10 +26,24 @@ The typical workflow looks like this:
 * The API server stores the resource in its internal database (typically [etcd](https://etcd.io/), but this is not important here).
 * Custom Controller application (built and deployed by you) running in the cluster subscribes to events happening to specific Custom Resource types.
 * Custom Controller handles all the creation/update/delete events happening to the Custom Resource. The Controller might or might not modify the resources it's working on.
+
+##### Controller compares the desired state of a custom resource (represented by the `spec` field) to the actual state of the world, and if they differ, it takes actions to synchronize them.  
   
-Basically this is all a Controller does - react to resources being created/updated/deleted, by subscribing to events.  
+More specifically, the Controller reacts to resources being created/updated/deleted, by subscribing to events.  
 What your controller does as the result of handling an event is limited only by your imagination (and your ability to turn it into reality) - typically it might call some external APIs (e.g. to create resources in the cloud, trigger a webhook, etc.), or it might create more Kubernetes resources (if you're building on existing Kubernetes abstractions).  
+
+Aside from reacting to events many controllers also implement a **Reconciliation Loop** - that is, they repeatedly (by cron) compare the desired state to the actual state, and eliminate the differences. This might be helpful if the state of your resource can change without you explicitly modifying it through `kubectl`.  
   
-Aside from reacting to events many controllers also implement a **Reconciliation Loop** - that is, they repeatedly (by cron) read the resources of the target type, and check if any resources require any actions. This might be helpful if the state of your resource can change without you explicitly modifying it through `kubectl`.  
-For example, if your custom `CloudVirtualMachine` resource requires that at all times there is a virtual machine instance with specific configuration running in the cloud (e.g. in AWS), your Custom Controller could every minute check if the virtual machine is really running, and if the machine crashes, the controller could restart it by issuing an API call to the cloud provider.
+The diagram below demonstrates the **Reconciliation Loop**:    
+![Reconciliation loop](/assets/posts/images/java-operator-tutorial/reconcile.png)  
   
+You might ask:  
+> Why would we need the reconciliation loop if we already have event handling? How is it possible for resource state to change without our command?
+
+The reason is that it's possible for us not to have complete control over the actual state of certain resources.  
+  
+Imagine that you have a `CloudVirtualMachine` resource, that spins up a virtual machine instance in your favorite cloud provider.  Your custom controller could create the VM by invoking the cloud provider API as a reaction to the resource creation event.  
+But what happens if the virtual machine crashes?  It will most certainly not invoke Kubernetes API to report the error, and now you have a discrepancy between the desired state recorded in your k8s cluster (your custom resource, saying there should be a VM running) and the actual state in the cloud (no VM running).  
+Without the reconciliation logic the VM just stays crashed, but if the Controller app checks the actual state periodically, it will notice the discrepancy and will be able to restart the crashed VM, or create a new one.  
+  
+___
