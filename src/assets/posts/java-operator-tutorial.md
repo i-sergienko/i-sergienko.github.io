@@ -139,3 +139,37 @@ Additionally, note the `subresources.status` field down below - it contains an e
   
 Now that we have a CRD, you can apply it to your k8s cluster by running `kubectl apply -f banana-crd.yaml`, and we are ready to finally start writing a Banana Controller to paint our Banana resources.  
 ___
+#### Writing a Custom Controller with [Java Operator SDK](https://github.com/java-operator-sdk/java-operator-sdk)
+
+The full code for this tutorial can be found [in my GitHub repository](https://github.com/i-sergienko/banana-operator).  
+I am going to use Spring Boot in this tutorial, since many backend Java developers are familiar with it, but it's easy to adapt the app to other frameworks or use with "pure" Java.  
+  
+Our application will consist of the following parts:  
+* Model classes - `Banana`, `BananaSpec` and `BananaStatus`. They represent, respectively, the Custom Resource itself, its `spec` field and its `status` field.
+* Core event handling logic - `BananaController` class. This will subscribe to events and react to `Banana` resources being created/updated/deleted.
+* Some logic to wire it all up.
+  
+##### Project setup
+Use [Spring Initializr](https://start.spring.io/) to initialize a new Java 11 Maven project.  
+Include Java Operator SDK,  to your *pom.xml*:  
+```
+<dependency>
+    <groupId>io.javaoperatorsdk</groupId>
+    <artifactId>operator-framework</artifactId>
+    <version>1.7.3</version>
+</dependency>
+```  
+  
+Include Spring Web and Spring Actuator - we will use them for healthcheck (leveragint the built-in `/actuator/health`), to check that the Controller app is up and running, but we will not build any HTTP endpoints ourselves:  
+```
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+```
+  
+##### Model classes
