@@ -223,3 +223,66 @@ Also note the annotations:
 These annotations will be used by the Java Operator SDK framework to subscribe to events related to `Banana` resources.
   
 This is all the setup we need for the model classes - when we connect to the cluster, the application will be able to deserialize `Banana` resources using these 3 classes.
+
+##### Controller class
+Now let's implement the resource controller for our `Banana` custom resource.  
+This is going to be the heart of our application - all the event-handling logic is going to be located here.  
+  
+In the *com.fruits.bananacontroller.controller* package create the `BananaController.java`:  
+```
+import com.fruits.bananacontroller.resource.Banana;
+import com.fruits.bananacontroller.resource.BananaStatus;
+import io.javaoperatorsdk.operator.api.*;
+import org.springframework.stereotype.Component;
+
+@Component
+@Controller
+public class BananaController implements ResourceController<Banana> {
+    @Override
+    public UpdateControl<Banana> createOrUpdateResource(Banana resource, Context<Banana> context) {
+        if (resource.getStatus() == null || !resource.getSpec().getColor().equals(resource.getStatus().getColor())) {
+            BananaStatus status = new BananaStatus();
+            status.setColor(resource.getSpec().getColor());
+            resource.setStatus(status);
+
+            paintBanana(resource);
+
+            return UpdateControl.updateStatusSubResource(resource);
+        } else {
+            return UpdateControl.noUpdate();
+        }
+    }
+
+    @Override
+    public DeleteControl deleteResource(Banana resource, Context<Banana> context) {
+        return DeleteControl.DEFAULT_DELETE;
+    }
+
+    private void paintBanana(Banana banana) {
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+  
+This is quite a lot to take in, so let's break down the important parts one by one.  
+  
+First, note the annotations:  
+* `@Component` - this is a Spring annotation that tells the framework to automatically create 1 instance of this class for dependency injection. It has nothing to do with event-handling logic, or Kubernetes.  
+* `@Controller` - this is a Java Operator SDK annotation that tells the Operator framework to use this class to subscribe to events. Note that this is `io.javaoperatorsdk.operator.api.Controller`, and **NOT** the Spring `@Controller` annotation used to define HTTP endpoints - it's easy to get confused, so import the correct one from Java Operator SDK.
+  
+  
+Next, note that the class `implements ResourceController<Banana>`.  
+The `ResourceController` contains 2 methods - `createOrUpdateResource(...)` and `deleteResource(...)` - which are going to be invoked when a `Banana` resource is either created/updated or deleted in the cluster, respectively.  
+Thanks to this interface, you don't ever have to invoke the Kubernetes API by yourself if all you care about is handling events - the framework will do all the wiring (subscribing to events, parsing JSON, etc.) for you. All you have to do is implement these 2 methods and handle the events.  
+  
+##### IMPORTANT: both of these methods have to be IDEMPOTENT.
+That is, when invoked multiple times, they should produce the same result - e.g. if the resource is already handled, there might not be a need to process it again, and your controller should realize that.  
+The reason for the idempotency requirement is that the framework can only guarantee *at least once* delivery of events - that means that one event might sometimes be passed to the handler multiple times.  
+  
+With that out of the way, let's take a look at how the 2 methods work.
+The `createOrUpdateResource(Banana resource, Context<Banana> context)` method is invoked whenever a `Banana` resource is created or updated.  
+
