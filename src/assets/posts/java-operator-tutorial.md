@@ -369,4 +369,5 @@ The `operator` method "registers" all of the `ResourceController` implementation
   
 This is it - the Java coding part is done, you can now build and deploy the app to the cluster.  
 We will cover the building/deployment process next.  
+  
 Of course, we also have to write integration tests for our controller, to make sure it actually works. That will be covered in the final part of the tutorial.  
