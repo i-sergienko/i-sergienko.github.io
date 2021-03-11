@@ -149,6 +149,7 @@ Our application will consist of the following parts:
 * Core event handling logic - `BananaController` class. This will subscribe to events and react to `Banana` resources being created/updated/deleted.
 * Some logic to wire it all up.
   
+---
 ##### Project setup
 Use [Spring Initializr](https://start.spring.io/) to initialize a new Java 11 Maven project.  
 Include Java Operator SDK,  to your *pom.xml*:  
@@ -172,6 +173,7 @@ Include Spring Web and Spring Actuator - we will use them for healthcheck (lever
 </dependency>
 ```
   
+---
 ##### Model classes
 As I already mentioned, we will need the `Banana`, `BananaSpec` and `BananaStatus` classes. Since `Banana` will reference the other two, let's define them first:  
   
@@ -224,6 +226,7 @@ These annotations will be used by the Java Operator SDK framework to subscribe t
   
 This is all the setup we need for the model classes - when we connect to the cluster, the application will be able to deserialize `Banana` resources using these 3 classes.
 
+---
 ##### Controller class
 Now let's implement the resource controller for our `Banana` custom resource.  
 This is going to be the heart of our application - all the event-handling logic is going to be located here.  
@@ -285,6 +288,7 @@ The reason for the idempotency requirement is that the framework can only guaran
   
 With that out of the way, let's take a look at how the 2 methods work.  
   
+---
 ##### Create/Update event handling
 The `UpdateControl<Banana> createOrUpdateResource(Banana resource, Context<Banana> context)` method is invoked whenever a `Banana` resource is created or updated.  
 Two arguments are passed into it during invocation:  
@@ -322,6 +326,7 @@ After we've processed our resource (painted the banana), we return `UpdateContro
   
 If the `status` is present and `status.color == spec.color`, we don't need to do any work or update anything - hence, we just return `UpdateControl.noUpdate()`.  
   
+---
 ##### Deletion event handling
 The second method's signature looks like this: `DeleteControl deleteResource(Banana resource, Context<Banana> context)`  
 The method handles deletion events (mind-blowing, I know).  
@@ -333,3 +338,35 @@ The parameters are the same as in `createOrUpdateResource`, but the result type 
 Read about [finalizers](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#finalizers) if you're curious how it's possible for a Custom Controller to prevent resource deletion.  
   
 In our simple implementation we're just going to always return `DEFAULT_DELETE`, allowing to delete the `Banana` resource.  
+
+___
+##### Wiring it all up and starting the application
+At this point we have everything we need to handle the events happening to Custom Resources - just a little bit of initialization remains to be done.  
+  
+In your `com.fruits.bananacontroller.BananaControllerApplication` class (or whatever it is you have annotated with `@SpringBootApplication`) define the following `@Bean`s:  
+```
+    @Bean
+    public KubernetesClient kubernetesClient() {
+        return new DefaultKubernetesClient();
+    }
+
+    @Bean
+    public Operator operator(
+            KubernetesClient client,
+            List<ResourceController<?>> controllers
+    ) {
+        Operator operator = new Operator(client, DefaultConfigurationService.instance());
+        controllers.forEach(operator::register);
+        return operator;
+    }
+```
+  
+The `kubernetesClient` method initializes the `KubernetesClient` instance that will be used by Java Operator SDK to call Kubernetes API and subscribe to events.  
+`new DefaultKubernetesClient()` initialized a default client that will either read your `$HOME/.kube/config` file if you're running the app locally, or read the pod's `ServiceAccount` credentials if you're running it inside the cluster.  
+There is normally no need to manually pass any credentials there.  
+  
+The `operator` method "registers" all of the `ResourceController` implementations you've defined (in our case it's only the `BananaController` class), using the `KubernetesClient` we initialized earlier to subscribe to Custom Resource events.  
+  
+This is it - the Java coding part is done, you can now build and deploy the app to the cluster.  
+We will cover the building/deployment process next.  
+Of course, we also have to write integration tests for our controller, to make sure it actually works. That will be covered in the final part of the tutorial.  
