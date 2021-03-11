@@ -8,7 +8,7 @@ Specifically, I expect you to know:
   
 What I am going to teach you:
 * How Kubernetes Controllers actually work under the hood.
-* The structure of a Custom Resource (in more detail than in [the introductory article](/articles/kubernetes-operator))
+* How Custom Resources are used by Custom Controllers, and how it affects their structure.
 * How to use [Java Operator SDK](https://github.com/java-operator-sdk/java-operator-sdk) to  write your own Custom Controller.
 * How to write end-to-end tests for your Custom Controller in a realistic environment, using [kind](https://kind.sigs.k8s.io/docs/user/quick-start/).
 * How to deploy your Operator (Custom Resource + Controller) to your k8s cluster.
