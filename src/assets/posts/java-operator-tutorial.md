@@ -283,6 +283,30 @@ Thanks to this interface, you don't ever have to invoke the Kubernetes API by yo
 That is, when invoked multiple times, they should produce the same result - e.g. if the resource is already handled, there might not be a need to process it again, and your controller should realize that.  
 The reason for the idempotency requirement is that the framework can only guarantee *at least once* delivery of events - that means that one event might sometimes be passed to the handler multiple times.  
   
-With that out of the way, let's take a look at how the 2 methods work.
-The `createOrUpdateResource(Banana resource, Context<Banana> context)` method is invoked whenever a `Banana` resource is created or updated.  
-
+With that out of the way, let's take a look at how the 2 methods work.  
+  
+##### Create/Update event handling
+The `UpdateControl<Banana> createOrUpdateResource(Banana resource, Context<Banana> context)` method is invoked whenever a `Banana` resource is created or updated.  
+Two arguments are passed into it during invocation:  
+* `Banana resource` - the custom resource itself, in its most up-to-date state. Since it contains the `spec` field, this is where you get the desired state from.  
+* `Context<Banana> context` - contains metadata about the events. If you are only interested in the current desired state (i.e. resource `spec`), which is the case most of the time, you won't ever need to use this argument.
+  
+The result type `UpdateControl<Banana>` allows you to indicate to the framework that you'd like to update either `spec`, `status`, or both, or neither of these fields after the method returns. This is convenient if you need to update the resource, but don't want to call Kubernetes API explicitly in your code.  
+Specifically:  
+* Returning `UpdateControl.noUpdate()` means "don't update anything". No API calls are issued after the method returns.  
+* Returning `UpdateControl.updateCustomResource(resource)` allows to update the `spec` field after the method returns. This is the equivalent of calling `kubectl apply -f banana.yaml`, so **this will generate another update event**.
+Make sure that at some point you return some other option, otherwise the controller is going to be stuck in an infinite loop of update events which it itself generates.
+* Returning `UpdateControl.updateStatusSubResource(resource)` allows to update the `status` field. This will not generate any new update events, so it's a valid "exit" point.  
+* Returning `UpdateControl.updateCustomResourceAndStatus(resource)` allows to update both `spec` and `status`. This will generate update events, hence the infinite loop risk - take the same care as with the `UpdateControl.updateCustomResource` option.
+  
+  
+##### Deletion event handling
+The second method's signature looks like this: `DeleteControl deleteResource(Banana resource, Context<Banana> context)`  
+The method handles deletion events (mind-blowing, I know).  
+The parameters are the same as in `createOrUpdateResource`, but the result type is different.  
+`DeleteControl` is an `enum` with 2 values:  
+* `DEFAULT_DELETE` - this means that the controller has processed the deletion event successfully, and Kubernetes can safely remove the resource from its internal DB.  
+* `NO_FINALIZER_REMOVAL` - this means that the controller objects to the resource being deleted. The resource **WILL NOT** be deleted from the cluster if this value is returned.  
+  
+Read about [finalizers](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#finalizers) if you're curious how it's possible for a Custom Controller to prevent resource deletion.  
+  
