@@ -474,3 +474,18 @@ Run `kubectl apply banana-crd.yaml`. Use the [*ops/banana-crd.yaml*](https://git
 Now that we have the cluster running and the CRD registered, we can actually execute our tests.  
 Run `./mvnw package` to run the integration tests and build the app. If the tests are successful, you'll now also have the app packed into a `.jar` file, ready for being built into a Docker container.  
   
+---
+##### Building the application image
+After the tests have successfully executed in the previous step, you have a *target/banana-controller-$VERSION.jar* file that you can bake into a Docker container.  
+There is [a reference Dockerfile](https://github.com/i-sergienko/banana-operator/blob/main/Dockerfile) in the project repository - check it out.  
+  
+Run `docker build -t banana-operator:latest .` to build the Docker container.  
+  
+Tag your container and push it to your image registry.  
+Since you've set up KiND with a local registry for running tests, you can test on that one:  
+`docker tag banana-operator:latest localhost:5000/banana-operator:latest`  
+`docker push localhost:5000/banana-operator:latest`  
+  
+Of course, in a real use case you'd push this to your image registry of choice instead - e.g. one from your cloud provider (AWS Elastic Container Registry, etc.).  
+  
+Now that you've built the container image and pushed it to your registry, all you have to do is deploy it to your k8s cluster.  
