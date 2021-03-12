@@ -161,7 +161,7 @@ Include Java Operator SDK,  to your *pom.xml*:
 </dependency>
 ```  
   
-Include Spring Web and Spring Actuator - we will use them for healthcheck (leveragint the built-in `/actuator/health`), to check that the Controller app is up and running, but we will not build any HTTP endpoints ourselves:  
+Include Spring Web and Spring Actuator - we will use them for healthcheck (leveraging the built-in `/actuator/health`), to check that the Controller app is up and running, but we will not build any HTTP endpoints ourselves:  
 ```
 <dependency>
 	<groupId>org.springframework.boot</groupId>
