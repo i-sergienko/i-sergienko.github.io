@@ -368,6 +368,83 @@ There is normally no need to manually pass any credentials there.
 The `operator` method "registers" all of the `ResourceController` implementations you've defined (in our case it's only the `BananaController` class), using the `KubernetesClient` we initialized earlier to subscribe to Custom Resource events.  
   
 This is it - the Java coding part is done, you can now build and deploy the app to the cluster.  
-We will cover the building/deployment process next.  
+Of course, we also have to write integration tests for our controller, to make sure it actually works. That will be covered in the next part of the tutorial.  
+
+We will cover the building/deployment process last.  
   
-Of course, we also have to write integration tests for our controller, to make sure it actually works. That will be covered in the final part of the tutorial.  
+___
+##### Testing the Controller application
+As fun as it is to write the application itself, if you want to use your Controller in production, you have to be sure that it works *before* you deploy it.  
+  
+To that end, we need integration tests - that is, we need to deploy the Controller to an actual Kubernetes cluster and check how it handles different scenarios.  
+Unit tests are also an important part of testing most applications, but I will not address them here - there is nothing Kubernetes-specific about them and they can be addressed by well-known tools like JUnit alone.  
+  
+To test a Kubernetes Controller, we will need to do the following:  
+* Write integration tests that actually launch the app, instead of testing classes in isolation - we will use Spring Boot Test library to do that.
+* Launch an actual Kubernetes cluster to test our controller against - we will use [Kubernetes In Docker (kind)](https://kind.sigs.k8s.io/docs/user/quick-start/) to launch a temporary single-node Kubernetes cluster in a Docker container. That way we can avoid the lengthy setup of a proper cluster or launching it in the cloud, and can just run the cluster right inside the CI pipeline.
+* Run our integration tests on the same machine where we launched [kind](https://kind.sigs.k8s.io/docs/user/quick-start/).  
+
+---
+##### Writing integration tests
+As an example, we'll write a simple test that programmatically creates a `Banana` resource in the cluster, waits for it to be painted the desired color, and then deletes the `Banana`.  
+  
+Inside *src/test/java* directory create a *com.fruits.bananacontroller.BananaControllerApplicationTests* class with the following content:  
+```
+@SpringBootTest
+class BananaControllerApplicationTests {
+
+    @Test
+    public void bananaIsPainted() {
+        // Create a banana in the 'default' namespace with spec.color = 'white' and metadata.name = 'white-banana'
+        BananaSpec spec = new BananaSpec();
+        spec.setColor("white");
+        Banana banana = new Banana();
+        banana.getMetadata().setName("white-banana");
+        banana.getMetadata().setNamespace("default");
+        banana.setSpec(spec);
+
+        // There are no bananas before we create one
+        assertEquals(0, listBananas("default").size());
+
+        // Create a banana
+        applyBanana(banana);
+        // Now there is one banana - the one we created
+        List<Banana> bananas = listBananas("default");
+        assertEquals(1, bananas.size());
+        assertEquals(banana.getMetadata().getName(), bananas.get(0).getMetadata().getName());
+        assertEquals(banana.getSpec().getColor(), bananas.get(0).getSpec().getColor());
+        // Color in the 'status' subresource is null - the operator hasn't run yet
+        assertNull(bananas.get(0).getStatus().getColor());
+
+        // Wait for the banana to be painted
+        safeWait(4000);
+
+        bananas = listBananas("default");
+        assertEquals(1, bananas.size());
+        assertNotNull(bananas.get(0).getStatus().getColor());
+        assertEquals(banana.getSpec().getColor(), bananas.get(0).getStatus().getColor());
+
+        // Delete the banana
+        deleteBanana(banana);
+        safeWait(3000);
+
+        // The banana list should again be empty
+        assertEquals(0, listBananas("default").size());
+    }
+    
+    // Utility methods omitted - see the repository for details
+
+    private void safeWait(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+}
+```
+  
+I omitted the `applyBanana`/`deleteBanana` and `listBananas` utility methods - they are programmatic equivalents of `kubectl apply`/`kubectl delete` and `kubectl get` commands, respectively, but programmatic access to Kubernetes API is out of scope of this tutorial.  
+For the details see [the project repository](https://github.com/i-sergienko/banana-operator/blob/main/src/test/java/com/fruits/bananacontroller/BananaControllerApplicationTests.java), but note that I did not implement them in the most elegant way - just enough to make the tests work.  
+  
+
