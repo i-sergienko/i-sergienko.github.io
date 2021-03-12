@@ -604,3 +604,14 @@ spec:
 ```  
 We define the basic healthchecks, resource requirements and specify the ServiceAccount to use.  
   
+Finally, we can apply all of the resources above, and the Operator deployment is complete:  
+```
+kubectl apply -f ops/namespace.yaml
+kubectl apply -f ops/banana-crd.yaml
+kubectl apply -f ops/rbac.yaml
+kubectl apply -f ops/deployment.yaml
+```
+  
+You can also just run [the *ops/scripts/deploy-operator.sh* script](https://github.com/i-sergienko/banana-operator/blob/main/ops/scripts/deploy-operator.sh), which executes the 4 `kubectl apply` commands from above, and works from any location.  
+  
+For an example of a full build/test/deploy pipeline you can refer to [the github workflow](https://github.com/i-sergienko/banana-operator/blob/main/.github/workflows/build-and-test-operator.yaml) defined in the repository. It does exactly what's described above.  
