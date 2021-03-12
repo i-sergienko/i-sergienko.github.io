@@ -615,3 +615,10 @@ kubectl apply -f ops/deployment.yaml
 You can also just run [the *ops/scripts/deploy-operator.sh* script](https://github.com/i-sergienko/banana-operator/blob/main/ops/scripts/deploy-operator.sh), which executes the 4 `kubectl apply` commands from above, and works from any location.  
   
 For an example of a full build/test/deploy pipeline you can refer to [the github workflow](https://github.com/i-sergienko/banana-operator/blob/main/.github/workflows/build-and-test-operator.yaml) defined in the repository. It does exactly what's described above.  
+  
+___
+##### You did it!
+You've built your first Kubernetes Operator in Java, or at least you've read this whole article. Thank you for reading it 🙇‍♂️  
+I hope this article helped you understand the whole Operator development process end-to-end - I wrote it because at the time when I was learning to do this, I could not find tutorials with detailed enough explanations - this is my attempt to remedy that lack of information.  
+  
+Be sure to also take a look at [the Java Operator SDK repository](https://github.com/java-operator-sdk/java-operator-sdk) - there are [different examples using Spring, Quarkus and just pure Java](https://github.com/java-operator-sdk/java-operator-sdk/tree/master/samples).
