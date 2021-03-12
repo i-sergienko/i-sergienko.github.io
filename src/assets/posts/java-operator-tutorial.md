@@ -461,4 +461,16 @@ Nothing complex, but this should be enough to show that our Controller app funct
 Now to the interesting part - how do we create that environment?  
   
 ---
-##### Preparing the testing environment
+##### Preparing the testing environment and running the tests
+You can use any existing Kubernetes cluster to test against - a local `minikube`, a managed cloud one, etc. - but that is not very convenient for test automation. We will use a more light-weight solution that can create a temporary Kubernetes cluster just to run the tests.  
+  
+Use the [script from the KiND documentation](https://kind.sigs.k8s.io/docs/user/local-registry/) to set up a single-node Kubernetes cluster and a local Docker registry.  
+You can find the same script in the [*ops/scripts/launch-kind.sh*](https://github.com/i-sergienko/banana-operator/blob/main/ops/scripts/launch-kind.sh) file inside the project repository.  
+It should work on any environment that has Docker installed - for example, you could run it inside your CI pipelines.  
+  
+Once the cluster is up and running, we need to apply the CRD to register our new custom resource.  
+Run `kubectl apply banana-crd.yaml`. Use the [*ops/banana-crd.yaml*](https://github.com/i-sergienko/banana-operator/blob/main/ops/banana-crd.yaml) file from the project repository.  
+  
+Now that we have the cluster running and the CRD registered, we can actually execute our tests.  
+Run `./mvnw package` to run the integration tests and build the app. If the tests are successful, you'll now also have the app packed into a `.jar` file, ready for being built into a Docker container.  
+  
