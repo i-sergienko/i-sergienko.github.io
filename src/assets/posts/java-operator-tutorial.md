@@ -370,7 +370,7 @@ In your `com.fruits.bananacontroller.BananaControllerApplication` class (or what
 ```
   
 The `kubernetesClient` method initializes the `KubernetesClient` instance that will be used by Java Operator SDK to call Kubernetes API and subscribe to events.  
-`new DefaultKubernetesClient()` initialized a default client that will either read your `$HOME/.kube/config` file if you're running the app locally, or read the pod's `ServiceAccount` credentials if you're running it inside the cluster.  
+`new DefaultKubernetesClient()` initializes a default client that will either read your `$HOME/.kube/config` file if you're running the app locally, or read the pod's `ServiceAccount` credentials if you're running it inside the cluster.  
 There is normally no need to manually pass any credentials there.  
   
 The `operator` method "registers" all of the `ResourceController` implementations you've defined (in our case it's only the `BananaController` class), using the `KubernetesClient` we initialized earlier to subscribe to Custom Resource events.  
@@ -389,7 +389,7 @@ Unit tests are also an important part of testing most applications, but I will n
   
 To test a Kubernetes Controller, we will need to do the following:  
 * Write integration tests that actually launch the app, instead of testing classes in isolation - we will use Spring Boot Test library to do that.
-* Launch an actual Kubernetes cluster to test our controller against - we will use [Kubernetes In Docker (kind)](https://kind.sigs.k8s.io/docs/user/quick-start/) to launch a temporary single-node Kubernetes cluster in a Docker container. That way we can avoid the lengthy setup of a proper cluster or launching it in the cloud, and can just run the cluster right inside the CI pipeline.
+* Launch an actual Kubernetes cluster to test our controller against - we will use [Kubernetes In Docker (kind)](https://kind.sigs.k8s.io/docs/user/quick-start/) to launch a temporary single-node Kubernetes cluster in a Docker container. That way we can avoid the lengthy setup of a proper cluster or launching it in the cloud, and can just run the cluster right inside our CI pipelines.
 * Run our integration tests on the same machine where we launched [kind](https://kind.sigs.k8s.io/docs/user/quick-start/).  
 
 ---
