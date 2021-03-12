@@ -338,7 +338,15 @@ The parameters are the same as in `createOrUpdateResource`, but the result type 
 Read about [finalizers](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#finalizers) if you're curious how it's possible for a Custom Controller to prevent resource deletion.  
   
 In our simple implementation we're just going to always return `DEFAULT_DELETE`, allowing to delete the `Banana` resource.  
-
+   
+___
+##### Reconciliation
+As you might have noticed, our `BananaController` class only reacts to incoming events - it doesn't do any reconciliation.  
+For our simple example use case we don't really need reconciliation, since `Banana` resources don't change their actual state unexpectedly.  
+  
+Reconciliation is out of scope of this tutorial, but if you need it, take a look at the `io.javaoperatorsdk.operator.processing.event.internal.TimerEventSource` class and its `schedule` method.  
+The way to achieve reconciliation would be to create this event source at app startup, register it in the event source manager by overriding the `BananaController.init(EventSourceManager eventSourceManager)` method, list all the existing `Banana` resources programmatically and call `TimerEventSource.schedule` for each of them. Don't forget to also schedule an event for every newly created `Banana` resource.  
+  
 ___
 ##### Wiring it all up and starting the application
 At this point we have everything we need to handle the events happening to Custom Resources - just a little bit of initialization remains to be done.  
