@@ -81,7 +81,7 @@ status:
   color: null
 ```
   
-Since we'd like to avoid re-painting the Bananas that were already painted, for each Banana we are goint to store its current color in the `status.color` field. If it is `null`, like in the example above, it means the Banana hasn't been painted yet, and the Controller has to do some work. If it is the same as `spec.color`, it means the Banana was already processed, and no action is necessary from the Controller.  
+Since we'd like to avoid re-painting the Bananas that were already painted, for each Banana we are going to store its current color in the `status.color` field. If it is `null`, like in the example above, it means the Banana hasn't been painted yet, and the Controller has to do some work. If it is the same as `spec.color`, it means the Banana was already processed, and no action is necessary from the Controller.  
 Notice how from the user's perspective there is only the `spec` field - the `status` field is only used by the Controller, and shouldn't be present in the `Banana` YAML manifest that you write manually.  
   
 To introduce the `Banana` resource type to our Kubernetes cluster, we need to create a `CustomResourceDefinition`. Let's take a look at it (*banana-crd.yaml*):
