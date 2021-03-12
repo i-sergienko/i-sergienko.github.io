@@ -7,6 +7,13 @@
     "path": "/assets/posts/kubernetes-operator.md"
   },
   {
+    "name": "java-operator-tutorial",
+    "title": "Build a Kubernetes Operator in Java",
+    "description": "Understand how to build a basic Kubernetes Operator in Java, using Java Operator SDK and Spring Boot. Learn how to test it and deploy it.",
+    "format": "md",
+    "path": "/assets/posts/java-operator-tutorial.md"
+  },
+  {
     "name": "terraform-vs-kuberentes-operators",
     "title": "Terraform vs. Kubernetes Operators",
     "description": "Which one should you pick when both seem to do the trick?",
