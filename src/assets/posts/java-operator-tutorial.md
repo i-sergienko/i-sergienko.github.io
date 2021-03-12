@@ -447,4 +447,18 @@ class BananaControllerApplicationTests {
 I omitted the `applyBanana`/`deleteBanana` and `listBananas` utility methods - they are programmatic equivalents of `kubectl apply`/`kubectl delete` and `kubectl get` commands, respectively, but programmatic access to Kubernetes API is out of scope of this tutorial.  
 For the details see [the project repository](https://github.com/i-sergienko/banana-operator/blob/main/src/test/java/com/fruits/bananacontroller/BananaControllerApplicationTests.java), but note that I did not implement them in the most elegant way - just enough to make the tests work.  
   
-
+The interesting part is the `bananaIsPainted` method. It does the following in the specified order:  
+* Checks that no `Banana` resources exist at the start of the test.  
+* Creates a `Banana` resource in the `default` namespace with `metadata.name = white-banana` and `spec.color = white`.
+* Lists the `Banana` resources again, and checks that there is now 1 `Banana` - the one that we created.  
+* Checks that the created `Banana` doesn't have a `status.color` field fillied yet - that is because we retrieve the resources immediately after creating one. The processing of a `Banana` by our Controller application takes 3 seconds, so immediately after creation it shouldn't be "painted" yet.  
+* Wait 4 seconds for the `Banana` to be processed by our Controller.  
+* List the `Banana` resources again, and check that this time our only `Banana` has `spec.color == status.color`, i.e. that it has been successfully "painted" and the `status` field has been updated by the Controller.  
+* Deletes the `Banana`, and waits for 3 seconds for the cluster to clean up the resource.
+* Checks that no `Banana` resources exist after we've deleted our only one.  
+  
+Nothing complex, but this should be enough to show that our Controller app functions in a real Kubernetes environment.  
+Now to the interesting part - how do we create that environment?  
+  
+---
+##### Preparing the testing environment
