@@ -489,3 +489,118 @@ Since you've set up KiND with a local registry for running tests, you can test o
 Of course, in a real use case you'd push this to your image registry of choice instead - e.g. one from your cloud provider (AWS Elastic Container Registry, etc.).  
   
 Now that you've built the container image and pushed it to your registry, all you have to do is deploy it to your k8s cluster.  
+  
+___
+##### Deploying the Operator to your Kubernetes cluster
+To deploy the Operator we'll need to apply the following resources to the target k8s cluster:  
+* `banana-operator` Namespace
+* The CustomResourceDefinition we defined previously in *banana-crd.yaml*
+* `banana-operator` ClusterRole, ServiceAccount and ClusterRoleBinding, to allow the controller to access `Banana` resources
+* `banana-controller` Deployment, located in the new `banana-oparator` namespace and using the `banana-operator` ServiceAccount  
+
+We've already seen [the CustomResourceDefinition](https://github.com/i-sergienko/banana-operator/blob/main/ops/banana-crd.yaml) multiple times, so no need to explain it.  
+  
+[The Namespace configuration](https://github.com/i-sergienko/banana-operator/blob/main/ops/namespace.yaml) is trivial, since we only have to specify the name:  
+```
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: banana-operator
+```
+  
+[The RBAC configuration](https://github.com/i-sergienko/banana-operator/blob/main/ops/rbac.yaml) is a bit more involved:  
+```
+# The role to be assumed by the operator.
+# Since in a typical case the operator manages custom resources across the whole cluster,
+# this is a ClusterRole (not restricted to 1 namespace)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: banana-operator
+rules:
+  # Allows all actions on Banana resources
+  - apiGroups:
+      - fruits.com
+    resources:
+      - bananas
+      # The "status" subresource requires an explicit permission
+      - bananas/status
+    verbs:
+      - "*"
+  # Allows to read CRDs - necessary for Operator SDK to work
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - "get"
+      - "list"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: banana-operator
+  namespace: banana-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: banana-operator
+subjects:
+  - kind: ServiceAccount
+    name: banana-operator
+    namespace: banana-operator
+roleRef:
+  kind: ClusterRole
+  name: banana-operator
+  apiGroup: ""
+```  
+We define a ClusterRole with permissions to do anything to `Banana` resources, a ServiceAccount in the `banana-operator` namespace, and a ClusterRoleBinding to attach the new ClusterRole to the new ServiceAccount.  
+  
+Finally, we define [the Deployment](https://github.com/i-sergienko/banana-operator/blob/main/ops/deployment.yaml):  
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banana-controller
+  namespace: banana-operator
+  labels:
+    app: banana-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: banana-controller
+  strategy:
+    type: Recreate # Assure that no more than 1 controller is active at all times
+  template:
+    metadata:
+      labels:
+        app: banana-controller
+    spec:
+      # Use the ServiceAccount from rbac.yaml
+      serviceAccountName: banana-operator
+      containers:
+        - image: localhost:5000/banana-operator:latest
+          name: banana-controller
+          env:
+            - name: JAVA_OPTS
+              value: "-Xmx75m"
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              memory: 50Mi
+            limits:
+              memory: 80Mi
+          startupProbe:
+            httpGet:
+              port: 8080
+              path: /actuator/health
+          livenessProbe:
+            httpGet:
+              port: 8080
+              path: /actuator/health
+```  
+We define the basic healthchecks, resource requirements and specify the ServiceAccount to use.  
+  
