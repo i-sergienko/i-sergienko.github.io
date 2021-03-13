@@ -6,7 +6,7 @@ import {NotFoundComponent} from './not-found/not-found.component';
 import {ArticleComponent} from './article/article.component';
 
 const routes: Routes = [
-  {path: '', redirectTo: '/about', pathMatch: 'full'},
+  {path: '', redirectTo: '/articles', pathMatch: 'full'},
   {path: 'articles', component: ArticleListComponent},
   {path: 'about', component: AboutComponent},
   {path: 'articles/:name', component: ArticleComponent},
