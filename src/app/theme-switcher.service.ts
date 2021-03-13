@@ -1,5 +1,6 @@
 import {Injectable} from '@angular/core';
 import {faMoon, faRadiationAlt, faSun, IconDefinition} from '@fortawesome/free-solid-svg-icons';
+import {HttpClient} from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -8,7 +9,7 @@ export class ThemeSwitcherService {
   // Active theme
   private readonly themes: Dictionary<ThemeConfig>;
 
-  constructor() {
+  constructor(private httpClient: HttpClient) {
     this.themes = new Dictionary<ThemeConfig>();
     this.themes.light = {
       name: 'light',
@@ -37,8 +38,10 @@ export class ThemeSwitcherService {
   }
 
   setTheme(theme: ThemeConfig): void {
-    localStorage.setItem('theme', theme.name);
-    document.getElementById('global-theme').setAttribute('href', theme.cssPath);
+    this.httpClient.get(theme.cssPath, {responseType: 'text'}).subscribe(_ => {
+      localStorage.setItem('theme', theme.name);
+      document.getElementById('global-theme').setAttribute('href', theme.cssPath);
+    });
   }
 
   nextTheme(theme: ThemeConfig): ThemeConfig {
