@@ -27,8 +27,7 @@
                  [class.is-active]="router.url == '/articles'">Tech Blog</a>
             </div>
 
-            <span class="navbar-item center has-text-centered has-text-warning"
-                  (click)="switchTheme(theme.nextThemeName)">
+            <span class="navbar-item center has-text-centered has-text-warning" (click)="switchTheme()">
                 <fa-icon class="fa-2x" [icon]="theme.nextThemeIcon"></fa-icon>
             </span>
 
