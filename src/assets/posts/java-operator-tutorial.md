@@ -472,9 +472,9 @@ Now to the interesting part - how do we create that environment?
 ##### Preparing the testing environment and running the tests
 You can use any existing Kubernetes cluster to test against - a local `minikube`, a managed cloud one, etc. - but that is not very convenient for test automation. We will use a more light-weight solution that can create a temporary Kubernetes cluster just to run the tests.  
   
-Use the [script from the KiND documentation](https://kind.sigs.k8s.io/docs/user/local-registry/) to set up a single-node Kubernetes cluster and a local Docker registry.  
-You can find the same script in the [*ops/scripts/launch-kind.sh*](https://github.com/i-sergienko/banana-operator/blob/main/ops/scripts/launch-kind.sh) file inside the project repository.  
-It should work on any environment that has Docker installed - for example, you could run it inside your CI pipelines.  
+Make sure [Docker](https://docs.docker.com/engine/install/), [KiND](https://kind.sigs.k8s.io/docs/user/quick-start/) and [kubectl](https://kubernetes.io/docs/tasks/tools/) are installed on the machine you're going to use to run the tests.  
+  
+Run `kind create cluster` to start up a local single-node Kubernetes cluster.  
   
 Once the cluster is up and running, we need to apply the CRD to register our new custom resource.  
 Run `kubectl apply banana-crd.yaml`. Use the [*ops/banana-crd.yaml*](https://github.com/i-sergienko/banana-operator/blob/main/ops/banana-crd.yaml) file from the project repository.  
@@ -489,12 +489,7 @@ There is [a reference Dockerfile](https://github.com/i-sergienko/banana-operator
   
 Run `docker build -t banana-operator:latest .` to build the Docker container.  
   
-Tag your container and push it to your image registry.  
-Since you've set up KiND with a local registry for running tests, you can test on that one:  
-`docker tag banana-operator:latest localhost:5000/banana-operator:latest`  
-`docker push localhost:5000/banana-operator:latest`  
-  
-Of course, in a real use case you'd push this to your image registry of choice instead - e.g. one from your cloud provider (AWS Elastic Container Registry, etc.).  
+Tag your image and push it to your registry (DockerHub/AWS ECR/something else you use).  
   
 Now that you've built the container image and pushed it to your registry, all you have to do is deploy it to your k8s cluster.  
   
