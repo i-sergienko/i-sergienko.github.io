@@ -154,15 +154,68 @@ func (r *BananaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	return ctrl.Result{}, nil
 }
+```  
+Let's break down the method parameters:  
+* Parameter: `ctx context.Context` - TODO
+* Parameter: `req ctrl.Request` - carries some metadata of the resource being changed - namely, you can get the `Name` and the `Namespace` of the resource (or the `NamespacedName` which combines them). Using that metadata, you can actually retrieve the resource from Kubernetes API.  
+  
+The result type `(ctrl.Result, error)` allows to control TODO
+  
+This method is invoked any time a `Banana` resource changes in the cluster - e.g. when you run `kubectl apply -f banana.yaml` or `kubectl delete banana banana-name`.  
+So there are 2 types of events we need to be able to handle:  
+* "Create"/"update" event - we cannot reliably distinguish between the two, so they are treated as one type.  
+  "Create"/"update" event handler assures that the actual state of the resource matches its desired state (as defined in `spec`). For example, if your Custom Resource is `CloudVirtualMachine`, during the "create"/"update" stage you would issue API calls to the cloud provider to check that if a VM instance with the desired specifications is running, and if it isn't, you'd issue an API call to launch it.  
+* "Delete" event - handling this event typically involves some cleanup logic. For example, if your Custom Resource is `CloudVirtualMachine` and during your "create"/"update" stage you created a VM instance in the cloud, during the cleanup stage you would invoke the API calls to the cloud provider to shut down/delete the VM.
+  
+Since the handling logic for the 2 event types is different, let's define dedicated methods for each of them - that way concerns are separated, and the code is more readable:  
 ```
-  
+func (r *BananaReconciler) handleCreateOrUpdate(ctx *context.Context, banana *fruitscomv1.Banana, log *logr.Logger) error {
+	return nil
+}
 
-  
+func (r *BananaReconciler) handleDelete(ctx *context.Context, banana *fruitscomv1.Banana, log *logr.Logger) error {
+  return nil
+}
+```  
+The methods are currently not doing anything - we will implement them later.  
+
 ##### IMPORTANT: both of these methods have to be IDEMPOTENT.
 That is, when invoked multiple times, they should produce the same result - e.g. if the resource is already handled, there might not be a need to process it again, and your controller should realize that.  
 The reason for the idempotency requirement is that the framework can only guarantee *at least once* delivery of events - that means that one event might sometimes be passed to the handler multiple times.  
   
 With that out of the way, let's take a look at how the 2 methods work.  
+  
+We obviously have to call the two methods from somewhere - that somewhere being the `Reconcile` method, so let's implement it first:  
+```
+func (r *BananaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.WithValues("banana", req.NamespacedName)
+
+	// Retrieve the Banana resource being updated from the Kubernetes API
+	banana := &fruitscomv1.Banana{}
+	err := r.Get(ctx, req.NamespacedName, banana)
+	if err != nil {
+		if errors.IsNotFound(err) {
+		  // If Banana is not found, we don't have to do anything - just ignore the event
+			log.Info("Banana not found: ignoring resource.", "namespacedName", req.NamespacedName)
+			return ctrl.Result{}, nil
+		}
+
+		log.Error(err, "Failed to retrieve Banana", "namespacedName", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+
+	if banana.GetDeletionTimestamp() == nil {
+		// If deletion timestamp is not present, the resource must have been created or updated
+		// Resource processing is performed in `handleCreateOrUpdate`
+		return ctrl.Result{}, r.handleCreateOrUpdate(&ctx, banana, &log)
+	} else {
+		// If deletion timestamp is there, the resource must have been deleted
+		// Additional cleanup is performed in `handleDelete`
+		return ctrl.Result{}, r.handleDelete(&ctx, banana, &log)
+	}
+}
+```  
+
   
 ---
 ##### Create/Update event handling
