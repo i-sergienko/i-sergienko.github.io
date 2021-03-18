@@ -64,29 +64,39 @@ spec:
     singular: banana
   scope: Namespaced
   versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: Banana is the Schema for the bananas API
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: BananaSpec defines the desired state of Banana
-            properties:
-              color:
-                type: string
-            required:
-            - color
-            type: object
-        type: object
-    served: true
-    storage: true
-```  
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          description:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              description:
+              properties:
+                color:
+                  type: string
+              required:
+                - color
+              type: object
+            status:
+              description:
+              properties:
+                color:
+                  type: string
+              required:
+                - color
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+```
 A bit long and gnarly, granted, but once we run `kubectl apply -f banana-crd.yaml`, we'll be able to create our `Banana` resources.  
 Let's test it - observe that **k8s** rejects the unknown resource before we create the CRD:
 > `> kubectl apply -f banana.yaml`  
@@ -129,8 +139,8 @@ You could write your Controller in any programming language - there are no restr
 The Controller application typically doesn't need its own database - all the information it needs to handle the resources will be stored in Kubernetes Control Plane, so your Controller app is stateless. 
   
 Here are some of the more popular languages/frameworks being used for that purpose:
-* Golang / [Operator SDK](https://sdk.operatorframework.io/docs/building-operators/golang/) - as of this writing, the most popular choice. Kubernetes ecosystem (unsurprisingly) is heavily biased towards Go, and Operator SDK is the most mature framework up to date. I found it well-structured and easy to use, but some limitations of the language made it seem impractical for certain use cases.
-* Java / [Java Operator SDK](https://github.com/java-operator-sdk/java-operator-sdk) - as you might have guessed from the name, it's basically an adaptation of [Operator SDK](https://sdk.operatorframework.io/docs/building-operators/golang/) for the Java world. It's less mature, but also well-structured and easy to get started with. Additionally, because of Java's better support for generics and metaprogramming, it allows to tackle some use cases in which Golang seems inconvenient.
+* Golang / [Operator SDK](https://sdk.operatorframework.io/docs/building-operators/golang/) - as of this writing, the most popular choice. Kubernetes ecosystem (unsurprisingly) is heavily biased towards Go, and Operator SDK is the most mature framework up to date.  
+* Java / [Java Operator SDK](https://github.com/java-operator-sdk/java-operator-sdk) - as you might have guessed from the name, it's basically an adaptation of [Operator SDK](https://sdk.operatorframework.io/docs/building-operators/golang/) for the Java world. It's less mature, but also well-structured and easy to get started with.
 * Python / [Kopf](https://kopf.readthedocs.io/en/stable/) - an option for Python users. I have not used it personally, but from the docs it seems lightweight and comprehensible.  
   
 This list is not exhaustive, and there might be other popular solutions by the time you're reading this.  
@@ -175,7 +185,7 @@ But what happens if the virtual machine crashes?  It will most certainly not inv
 Without the reconciliation logic the VM just stays crashed, but if the Controller app checks the actual state periodically, it will notice the discrepancy and will be able to restart the crashed VM, or create a new one.
 
 ___
-#### Anatomy of a Custom Resource
+#### Anatomy of a Custom Resource, and how Controllers use it
 Just like the "built-in" Kubernetes resources, Custom Resources all have a similar structure.  
 They consist of:
 * The `metadata` field - a nested object containing (among other things) the name, namespace and labels of the resource. The metadata object structure is the same for all resources, and you cannot change it.
@@ -212,7 +222,8 @@ status:
 Since we'd like to avoid re-painting the Bananas that were already painted, for each Banana we are going to store its current color in the `status.color` field. If it is `null`, like in the example above, it means the Banana hasn't been painted yet, and the Controller has to do some work. If it is the same as `spec.color`, it means the Banana was already processed, and no action is necessary from the Controller.  
 Notice how from the user's perspective there is only the `spec` field - the `status` field is only used by the Controller, and shouldn't be present in the `Banana` YAML manifest that you write manually.
 
-To introduce the `Banana` resource type to our Kubernetes cluster, we need to create a `CustomResourceDefinition`. Let's take a look at it (*banana-crd.yaml*):
+To introduce the `Banana` resource type to our Kubernetes cluster, earlier we created a `CustomResourceDefinition`.  
+Let's take another look at it (*banana-crd.yaml*):
 ```
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -260,13 +271,23 @@ spec:
       subresources:
         status: {}
 ```
-
+  
 As you can see, the CRD's `...openAPIV3Schema.properties` field contains a `spec` field and a `status` field, both of which in turn contain a `color` field of type `string`.
 
-Additionally, note the `subresources.status` field down below - it contains an empty object, but the fact that the field is present tells Kubernetes that `status` is a valid *subresource* of the `Banana` resource. This is important because without this field we'll not be able to modify the `status` field from our Banana Controller.
-
-Now that we have a CRD, you can apply it to your k8s cluster by running `kubectl apply -f banana-crd.yaml`, and we are ready to finally start writing a Banana Controller to paint our Banana resources.  
+Additionally, note the `subresources.status` field down below - it contains an empty object, but the fact that the field is present tells Kubernetes that `status` is a valid *subresource* of the `Banana` resource. This is important because without this field we won't be able to modify the `status` field from our Banana Controller.
   
-You can use the tutorials below to learn how to implement the Controller in your language/framework of choice:  
-* [Java + Java Operator SDK](/articles/java-operator-tutorial)
+___
+#### Further reading
+Now that we have a CRD applied to a k8s cluster (by running `kubectl apply -f banana-crd.yaml`), we are ready to finally start writing a Banana Controller to paint our Banana resources.  
+  
+You can use my tutorials below to learn how to implement a Custom Controller in either Golang or Java:  
 * [Go + Operator SDK](/articles/golang-operator-tutorial)
+* [Java + Java Operator SDK](/articles/java-operator-tutorial)
+  
+In these tutorials I aimed to show the complete picture of how to build, test and deploy a simple Custom Controller.  
+While learning how to implement controllers, I also found the following resources useful:  
+* [Programming Kubernetes](https://www.oreilly.com/library/view/programming-kubernetes/9781492047094/) - the book walks you through Kubernetes API basics. The code examples are in Golang, but a lot of the concepts explained are language-agnostic - you could benefit from them regardless of the language you plan to use.  
+* **Go**: [Operator SDK quickstart guide](https://sdk.operatorframework.io/docs/building-operators/golang/quickstart/) - a quick introduction into writing controllers in Golang.
+* **Go**: [Kubebuilder book](https://book.kubebuilder.io/) - Kubebuilder is another Golang framework for implementing k8s operators - it's more low-level than Operator SDK. In fact, Operator SDK uses Kubebuilder internally. Even if you don't plan to use Kubebuilder directly, you could benefit from taking a look at it - the docs contain a lot of useful information about how Kubernetes API works in general.  
+* **Java**: [Java Operator SDK](https://github.com/java-operator-sdk/java-operator-sdk) examples and [the tutorial by the framework authors](https://blog.container-solutions.com/a-deep-dive-into-the-java-operator-sdk).  
+* **Python**: [Kopf documentation](https://kopf.readthedocs.io/en/stable/) - Kopf is a framework for writing Custom Controllers in Python.  
