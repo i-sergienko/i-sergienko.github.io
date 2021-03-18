@@ -3,12 +3,10 @@ ___
 I expect the reader to have certain knowledge and skills.  
 Specifically, I expect you to know:
 * Kubernetes basics - what default resources there are, how to deploy simple applications, how to use `kubectl`.
-* On a high level, what a Custom Resource is, and what a Kubernetes Operator is - you can read about these topics [in my previous post](/articles/kubernetes-operator).
+* On a high level, what a Custom Resource is, what a Custom Controller is and how they interact - you can read about these topics [in my previous post](/articles/kubernetes-operator).
 * Basic knowledge of Go - going through [A Tour of Go](https://tour.golang.org/welcome/1) or reading [Go in Action](https://www.manning.com/books/go-in-action) and writing some simple apps should be enough.
   
 What I am going to teach you:
-* How Kubernetes Controllers actually work under the hood.
-* How Custom Resources are used by Custom Controllers, and how it affects their structure.
 * How to use [Operator SDK](https://sdk.operatorframework.io) to  write your own Custom Controller.
 * How to write end-to-end tests for your Custom Controller in a realistic environment, using [kind](https://kind.sigs.k8s.io/docs/user/quick-start/).
 * How to deploy your Operator (Custom Resource + Controller) to your k8s cluster.
