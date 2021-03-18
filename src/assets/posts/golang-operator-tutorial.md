@@ -142,58 +142,21 @@ Run `make manifests` and observe that a CRD manifest with all the necessary fiel
 ---
 ##### Implementing the controller
 Now let's implement the resource controller for our `Banana` custom resource.  
-This is going to be the heart of our application - all the event-handling logic is going to be located here.  
+This is going to be the heart of our application - all the event-handling and reconciliation logic is going to be located here.  
   
-In the *com.fruits.bananacontroller.controller* package create the `BananaController.java`:  
+We already have the `BananaReconciler` type generated for us in `controllers/banana_controller.go`.  
+We are only interested in changing 1 method here - the `BananaReconciler.Reconcile` method, which is currently empty:  
 ```
-import com.fruits.bananacontroller.resource.Banana;
-import com.fruits.bananacontroller.resource.BananaStatus;
-import io.javaoperatorsdk.operator.api.*;
-import org.springframework.stereotype.Component;
+func (r *BananaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	_ = r.Log.WithValues("banana", req.NamespacedName)
 
-@Component
-@Controller
-public class BananaController implements ResourceController<Banana> {
-    @Override
-    public UpdateControl<Banana> createOrUpdateResource(Banana resource, Context<Banana> context) {
-        if (resource.getStatus() == null || !resource.getSpec().getColor().equals(resource.getStatus().getColor())) {
-            BananaStatus status = new BananaStatus();
-            status.setColor(resource.getSpec().getColor());
-            resource.setStatus(status);
+	// your logic here
 
-            paintBanana(resource);
-
-            return UpdateControl.updateStatusSubResource(resource);
-        } else {
-            return UpdateControl.noUpdate();
-        }
-    }
-
-    @Override
-    public DeleteControl deleteResource(Banana resource, Context<Banana> context) {
-        return DeleteControl.DEFAULT_DELETE;
-    }
-
-    private void paintBanana(Banana banana) {
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
+	return ctrl.Result{}, nil
 }
 ```
   
-This is quite a lot to take in, so let's break down the important parts one by one.  
-  
-First, note the annotations:  
-* `@Component` - this is a Spring annotation that tells the framework to automatically create 1 instance of this class for dependency injection. It has nothing to do with event-handling logic, or Kubernetes.  
-* `@Controller` - this is a Java Operator SDK annotation that tells the Operator framework to use this class to subscribe to events. Note that this is `io.javaoperatorsdk.operator.api.Controller`, and **NOT** the Spring `@Controller` annotation used to define HTTP endpoints - it's easy to get confused, so import the correct one from Java Operator SDK.
-  
-  
-Next, note that the class `implements ResourceController<Banana>`.  
-The `ResourceController` contains 2 methods - `createOrUpdateResource(...)` and `deleteResource(...)` - which are going to be invoked when a `Banana` resource is either created/updated or deleted in the cluster, respectively.  
-Thanks to this interface, you don't ever have to invoke the Kubernetes API by yourself if all you care about is handling events - the framework will do all the wiring (subscribing to events, parsing JSON, etc.) for you. All you have to do is implement these 2 methods and handle the events.  
+
   
 ##### IMPORTANT: both of these methods have to be IDEMPOTENT.
 That is, when invoked multiple times, they should produce the same result - e.g. if the resource is already handled, there might not be a need to process it again, and your controller should realize that.  
