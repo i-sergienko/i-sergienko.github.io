@@ -15,6 +15,19 @@ ___
 
 The full code for this tutorial can be found [in my GitHub repository](https://github.com/i-sergienko/banana-operator).  
 I am going to use Spring Boot in this tutorial, since many backend Java developers are familiar with it, but it's easy to adapt the app to other frameworks or use with "pure" Java.  
+
+We are going to continue from where [the previous post](/articles/kubernetes-operator) left off, and implement a Controller app for a fictional `Banana` resource that looks like this:
+```
+apiVersion: fruits.com/v1
+kind: Banana
+metadata:
+  name: green-banana
+spec:
+  color: "green" # the desired color of the Banana
+status:
+  color: "yellow" # the color the Banana is currently painted
+```  
+The Controller application will ensure that the observed state of the `Banana` (represented by `status.color`) matches its desired state (represented by `spec.color`).  
   
 Our application will consist of the following parts:  
 * Model classes - `Banana`, `BananaSpec` and `BananaStatus`. They represent, respectively, the Custom Resource itself, its `spec` field and its `status` field.

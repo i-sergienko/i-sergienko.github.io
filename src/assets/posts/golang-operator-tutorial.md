@@ -79,8 +79,13 @@ Run the following command:
 ```
 operator-sdk create api --version v1 --kind Banana --resource --controller
 ```  
+Let's break down the parameters:  
+* `--version` - the API version of your resource. This will be part of the `apiVersion` field of our resource - `apiVersion: fruits.com/v1` in this case (note our old friend `--domain fruits.com` from the `init` command).  
+* `--kind` - the name of our new Custom Resource. We will write `kind: Banana` in our YAML later, since we've specified `--kind Banana`.  
+* `--resource` - flag saying "please generate the model classes (i.e. types) for me".  
+* `--controller` - flag saying "please generate the controller class for me".  
   
-This will generate two interesting directories:  
+The command will generate two interesting directories:  
 * `api/v1/` - contains the generated Custom Resource model (types). Specifically, the types are located in the `api/v1/${KIND_NAME}_types.go` (in our case it's `api/v1/banana_types.go`) - pay no attention any other files in the same directory, you won't have to touch them.  
 * `controllers/` - contains the generated Controller class (in our case it's the `BananaReconciler` type in the `controllers/banana_controller.go` file) and a blank test suite (`suite_test.go`).
   
