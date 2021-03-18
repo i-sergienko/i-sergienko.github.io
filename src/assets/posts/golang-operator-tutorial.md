@@ -4,7 +4,7 @@ I expect the reader to have certain knowledge and skills.
 Specifically, I expect you to know:
 * Kubernetes basics - what default resources there are, how to deploy simple applications, how to use `kubectl`.
 * On a high level, what a Custom Resource is, what a Custom Controller is and how they interact - you can read about these topics [in my previous post](/articles/kubernetes-operator).
-* Basic knowledge of Go - going through [A Tour of Go](https://tour.golang.org/welcome/1) or reading [Go in Action](https://www.manning.com/books/go-in-action) and writing some simple apps should be enough.
+* Go basics - going through [A Tour of Go](https://tour.golang.org/welcome/1) or reading [Go in Action](https://www.manning.com/books/go-in-action) and writing some simple apps should be enough.
   
 What I am going to teach you:
 * How to use [Operator SDK](https://sdk.operatorframework.io) to  write your own Custom Controller.
@@ -31,14 +31,14 @@ status:
 The Controller application will ensure that the observed state of the `Banana` (represented by `status.color`) matches its desired state (represented by `spec.color`). 
   
 The framework will do the following for us:  
-* Generate the skeleton for model classes - `Banana`/`BananaSpec`/`BananaStatus`. They represent, respectively, the Custom Resource itself, its `spec` field and its `status` field.
-* Generate the `BananaReconciler` class - this will contain core event handling/reconciliation logic. It will subscribe to events and react to `Banana` resources being created/updated/deleted.  
+* Generate the skeleton for model types - `Banana`/`BananaSpec`/`BananaStatus`. They represent, respectively, the Custom Resource itself, its `spec` field and its `status` field.
+* Generate the `BananaReconciler` type - this will contain core event handling/reconciliation logic. It will subscribe to events and react to `Banana` resources being created/updated/deleted.  
 * Generate all the initialization/wiring logic.
 * Generate all the necessary k8s manifests (`CustomResourceDefinition`, controller `Deployment`, etc.).
   
 Our job will be to do the following:  
-* Implement the model classes - `Banana`, `BananaSpec` and `BananaStatus`.  
-* Implement the event handling/reconciliation logic in the `BananaReconciler` class.  
+* Implement the model types - `Banana`, `BananaSpec` and `BananaStatus`.  
+* Implement the event handling/reconciliation logic in the `BananaReconciler` type.  
 * Write integration tests.  
 * Write CI/CD pipelines to build/test/deploy our Operator automatically.  
   
@@ -71,10 +71,10 @@ The possible exceptions are:
 * `main.go` - the entry point of our app. For simple use cases you don't have to modify it - we will not touch it in this tutorial. Just note that all the wiring/initialization is done for you.  
 Also note the `config/` directory - all the generated k8s manifests will be located there, but you don't have to modify any of them manually.  
   
-At this point we have neither the Custom Resource model classes, nor the event-handling Controller class. That is what we are going to generate next.  
+At this point we have neither the Custom Resource model types, nor the event-handling Controller type. That is what we are going to generate next.  
 
 ___
-##### Creating an API - model/controller classes
+##### Creating an API - model/controller types
 Run the following command:  
 ```
 operator-sdk create api --version v1 --kind Banana --resource --controller
@@ -82,71 +82,65 @@ operator-sdk create api --version v1 --kind Banana --resource --controller
 Let's break down the parameters:  
 * `--version` - the API version of your resource. This will be part of the `apiVersion` field of our resource - `apiVersion: fruits.com/v1` in this case (note our old friend `--domain fruits.com` from the `init` command).  
 * `--kind` - the name of our new Custom Resource. We will write `kind: Banana` in our YAML later, since we've specified `--kind Banana`.  
-* `--resource` - flag saying "please generate the model classes (i.e. types) for me".  
-* `--controller` - flag saying "please generate the controller class for me".  
+* `--resource` - flag saying "please generate the model types (i.e. types) for me".  
+* `--controller` - flag saying "please generate the controller type for me".  
   
 The command will generate two interesting directories:  
 * `api/v1/` - contains the generated Custom Resource model (types). Specifically, the types are located in the `api/v1/${KIND_NAME}_types.go` (in our case it's `api/v1/banana_types.go`) - pay no attention any other files in the same directory, you won't have to touch them.  
-* `controllers/` - contains the generated Controller class (in our case it's the `BananaReconciler` type in the `controllers/banana_controller.go` file) and a blank test suite (`suite_test.go`).
+* `controllers/` - contains the generated Controller type (in our case it's the `BananaReconciler` type in the `controllers/banana_controller.go` file) and a blank test suite (`suite_test.go`).
   
 Both the model types and the controller are currently empty - the model types contain no useful fields and the controller doesn't have any event-handling logic.  
 Implementing them will constitute the bulk of our job.  
 
 ---
-##### Model classes
-As I already mentioned, we will need the `Banana`, `BananaSpec` and `BananaStatus` classes. Since `Banana` will reference the other two, let's define them first:  
-  
-In the *com.fruits.bananacontroller.resource* package create the *BananaSpec.java* class:
+##### Implementing the model types
+At this point we have the skeleton for our model types generated in the `api/v1/banana_types.go` file.  
+They currently look like this (some generated comments omitted for readability):  
 ```
-public class BananaSpec {
-    private String color;
-    
-    // getter and setter omitted
+// BananaSpec defines the desired state of Banana
+type BananaSpec struct {
+	Foo string `json:"foo,omitempty"`
+}
+
+// BananaStatus defines the observed state of Banana
+type BananaStatus struct {
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+
+// Banana is the Schema for the bananas API
+type Banana struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   BananaSpec   `json:"spec,omitempty"`
+	Status BananaStatus `json:"status,omitempty"`
 }
 ```  
-This is a simple container class.
+Note the comments starting with `// +kubebuilder:...` - these are **necessary**, do not remove them or change their position ([unless you understand exactly what you're doing](https://book.kubebuilder.io/reference/markers.html)).  
   
-In the same package, create the *BananaStatus.java* class:  
+We don't need to touch the `Banana` struct itself - it's fine as it is - but we do want to modify the `BananaSpec` and `BananaStatus`, since they don't contain the fields we need.  
+  
+Let's add the `color` field that we need to both `spec` and `status`:  
 ```
-public class BananaStatus {
-    private String color;
-    
-    // getter and setter omitted
+// BananaSpec defines the desired state of Banana
+type BananaSpec struct {
+	Color string `json:"color,omitempty"`
+}
+
+// BananaStatus defines the observed state of Banana
+type BananaStatus struct {
+	Color string `json:"color,omitempty"`
 }
 ```  
-This is also a simple container class.
+Remember to run `make generate` every time you modify these types - this will re-generate some of the boilerplate that you don't have to edit manually, or even read, but it's necessary for the application to function.  
   
-Finally, in the same package, create the *Banana.java* class:
-```
-import io.fabric8.kubernetes.api.model.Namespaced;
-import io.fabric8.kubernetes.client.CustomResource;
-import io.fabric8.kubernetes.model.annotation.Group;
-import io.fabric8.kubernetes.model.annotation.Kind;
-import io.fabric8.kubernetes.model.annotation.Version;
-
-@Group("fruits.com")
-@Version("v1")
-@Kind("Banana")
-public class Banana extends CustomResource<BananaSpec, BananaStatus> implements Namespaced {
-}
-```
-  
-This one is more interesting - let's take a look at what it `extends` and `implements`:
-* `extends CustomResource<...>` - extending the base class from the framework, our `Banana` inherits the `metadata` field and some initialization logic.  
-The generic type parameters are filled with our `BananaSpec` and `BananaStatus` types: `CustomResource<BananaSpec, BananaStatus>`. Quite intuitively, this means that our `Banana` now has a `spec` field of type `BananaSpec`, and a `status` field of type `BananaStatus`.  
-* `implements Namespaced` - this means that our `Banana` resources will exist inside namespaces, like most of the Kubernetes resources you know (`Pod`/`Deployment`/`Service`/etc.), as opposed to being cluster-scoped (like `ClusterRoleBinding`).
-  
-Also note the annotations:
-* `@Group("fruits.com")` - matches `spec.group` from *banana-crd.yaml*.
-* `@Version("v1")` - matches the version name from *banana-crd.yaml*.
-* `@Kind("Banana")` - matches `spec.names.kind` from *banana-crd.yaml*.  
-
-These annotations will be used by the Java Operator SDK framework to subscribe to events related to `Banana` resources.
-  
-This is all the setup we need for the model classes - when we connect to the cluster, the application will be able to deserialize `Banana` resources using these 3 classes.
+This is all we need to do with the model types.  
+Run `make manifests` and observe that a CRD manifest with all the necessary fields was generated in `config/crd/bases/`.  
 
 ---
-##### Controller class
+##### Implementing the controller
 Now let's implement the resource controller for our `Banana` custom resource.  
 This is going to be the heart of our application - all the event-handling logic is going to be located here.  
   
