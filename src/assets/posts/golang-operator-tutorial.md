@@ -17,7 +17,20 @@ The full code for this tutorial can be found [in my GitHub repository](https://g
   
 Operator SDK is a powerful tool that will generate a lot of the necessary code for us. It generates so much of it, in fact, that it's a bit overwhelming for a beginner to figure out which parts of the code they should actually touch. My goal in this tutorial is flatten the learning curve as much as possible by pointing out exactly which parts are important for you as a developer, and which parts you can ignore.  
   
-The framework will do the following for us:
+We are going to continue from where [the previous post](/articles/kubernetes-operator) left off, and implement a Controller app for a fictional `Banana` resource that looks like this:  
+```
+apiVersion: fruits.com/v1
+kind: Banana
+metadata:
+  name: green-banana
+spec:
+  color: "green" # the desired color of the Banana
+status:
+  color: "yellow" # the color the Banana is currently painted
+```  
+The Controller application will ensure that the observed state of the `Banana` (represented by `status.color`) matches its desired state (represented by `spec.color`). 
+  
+The framework will do the following for us:  
 * Generate the skeleton for model classes - `Banana`/`BananaSpec`/`BananaStatus`. They represent, respectively, the Custom Resource itself, its `spec` field and its `status` field.
 * Generate the `BananaReconciler` class - this will contain core event handling/reconciliation logic. It will subscribe to events and react to `Banana` resources being created/updated/deleted.  
 * Generate all the initialization/wiring logic.
@@ -52,6 +65,28 @@ The two parameters mean the following:
 * `--domain` - the API group for our Custom Resources. Remember the `apiVersion` field in all the k8s YAML you write? For example, in a `Role` resource it looks like this: `apiVersion: rbac.authorization.k8s.io/v1beta1`. `rbac.authorization.k8s.io` is the domain here, also known as the API group. So in our case, since we specified `--domain fruits.com`, our Custom Resource YAML will contain `apiVersion: fruits.com/v1` (assuming the resource version we create is `v1`).  
 * `--repo` - name of the generated Go module. As the name suggests, it can be a GitHub repository reference (e.g. `github.com/i-sergienko/banana-operator-golang`), but it doesn't have to be.  
   
+When you run the command above, the framework will generate a lot of boilerplate code for you, virtually none of which you'll likely need to care about.  
+The possible exceptions are:  
+* `Makefile` - defines commands to build/test/deploy the app. Depending on your use case you might want to modify it (we'll do that for running integration tests later).  
+* `main.go` - the entry point of our app. For simple use cases you don't have to modify it - we will not touch it in this tutorial. Just note that all the wiring/initialization is done for you.  
+Also note the `config/` directory - all the generated k8s manifests will be located there, but you don't have to modify any of them manually.  
+  
+At this point we have neither the Custom Resource model classes, nor the event-handling Controller class. That is what we are going to generate next.  
+
+___
+##### Creating an API - model/controller classes
+Run the following command:  
+```
+operator-sdk create api --version v1 --kind Banana --resource --controller
+```  
+  
+This will generate two interesting directories:  
+* `api/v1/` - contains the generated Custom Resource model (types). Specifically, the types are located in the `api/v1/${KIND_NAME}_types.go` (in our case it's `api/v1/banana_types.go`) - pay no attention any other files in the same directory, you won't have to touch them.  
+* `controllers/` - contains the generated Controller class (in our case it's the `BananaReconciler` type in the `controllers/banana_controller.go` file) and a blank test suite (`suite_test.go`).
+  
+Both the model types and the controller are currently empty - the model types contain no useful fields and the controller doesn't have any event-handling logic.  
+Implementing them will constitute the bulk of our job.  
+
 ---
 ##### Model classes
 As I already mentioned, we will need the `Banana`, `BananaSpec` and `BananaStatus` classes. Since `Banana` will reference the other two, let's define them first:  
