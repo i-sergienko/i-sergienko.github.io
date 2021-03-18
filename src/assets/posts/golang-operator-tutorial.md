@@ -11,39 +11,46 @@ What I am going to teach you:
 * How to write end-to-end tests for your Custom Controller in a realistic environment, using [kind](https://kind.sigs.k8s.io/docs/user/quick-start/).
 * How to deploy your Operator (Custom Resource + Controller) to your k8s cluster.
 ___
-#### Writing a Custom Controller with [Java Operator SDK](https://github.com/java-operator-sdk/java-operator-sdk)
+#### Writing a Custom Controller with [Operator SDK](https://sdk.operatorframework.io)
 
-The full code for this tutorial can be found [in my GitHub repository](https://github.com/i-sergienko/banana-operator).  
-I am going to use Spring Boot in this tutorial, since many backend Java developers are familiar with it, but it's easy to adapt the app to other frameworks or use with "pure" Java.  
+The full code for this tutorial can be found [in my GitHub repository](https://github.com/i-sergienko/banana-operator-golang).  
   
-Our application will consist of the following parts:  
-* Model classes - `Banana`, `BananaSpec` and `BananaStatus`. They represent, respectively, the Custom Resource itself, its `spec` field and its `status` field.
-* Core event handling logic - `BananaController` class. This will subscribe to events and react to `Banana` resources being created/updated/deleted.
-* Some logic to wire it all up.
+Operator SDK is a powerful tool that will generate a lot of the necessary code for us. It generates so much of it, in fact, that it's a bit overwhelming for a beginner to figure out which parts of the code they should actually touch. My goal in this tutorial is flatten the learning curve as much as possible by pointing out exactly which parts are important for you as a developer, and which parts you can ignore.  
+  
+The framework will do the following for us:
+* Generate the skeleton for model classes - `Banana`/`BananaSpec`/`BananaStatus`. They represent, respectively, the Custom Resource itself, its `spec` field and its `status` field.
+* Generate the `BananaReconciler` class - this will contain core event handling/reconciliation logic. It will subscribe to events and react to `Banana` resources being created/updated/deleted.  
+* Generate all the initialization/wiring logic.
+* Generate all the necessary k8s manifests (`CustomResourceDefinition`, controller `Deployment`, etc.).
+  
+Our job will be to do the following:  
+* Implement the model classes - `Banana`, `BananaSpec` and `BananaStatus`.  
+* Implement the event handling/reconciliation logic in the `BananaReconciler` class.  
+* Write integration tests.  
+* Write CI/CD pipelines to build/test/deploy our Operator automatically.  
   
 ---
 ##### Project setup
-Use [Spring Initializr](https://start.spring.io/) to initialize a new Java 11 Maven project.  
-Include Java Operator SDK,  to your *pom.xml*:  
-```
-<dependency>
-    <groupId>io.javaoperatorsdk</groupId>
-    <artifactId>operator-framework</artifactId>
-    <version>1.7.3</version>
-</dependency>
-```  
+
+Make sure the following software is installed on your machine:
+* [Git](https://git-scm.com/downloads)
+* [Golang](https://golang.org/doc/install) - v.1.15 is used in this tutorial.  
+* [Operator SDK](https://sdk.operatorframework.io/docs/building-operators/golang/installation/) - v.1.3.0 is used in this tutorial.  
   
-Include Spring Web and Spring Actuator - we will use them for healthcheck (leveraging the built-in `/actuator/health`), to check that the Controller app is up and running, but we will not build any HTTP endpoints ourselves:  
+Create and enter the project directory:  
 ```
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
-<dependency>
-	<groupId>org.springframework.boot</groupId>
-	<artifactId>spring-boot-starter-web</artifactId>
-</dependency>
+mkdir banana-operator-golang
+cd banana-operator-golang
+```  
+Note that the name of the directory matters - it will be used as the project name as well as a prefix for all the generated Kubernetes manifests, so choose something meaningful (e.g. the name of your operator, like I did here).  
+  
+Initialize the project with Operator SDK:  
 ```
+operator-sdk init --domain fruits.com --repo banana-operator-golang
+```  
+The two parameters mean the following:  
+* `--domain` - the API group for our Custom Resources. Remember the `apiVersion` field in all the k8s YAML you write? For example, in a `Role` resource it looks like this: `apiVersion: rbac.authorization.k8s.io/v1beta1`. `rbac.authorization.k8s.io` is the domain here, also known as the API group. So in our case, since we specified `--domain fruits.com`, our Custom Resource YAML will contain `apiVersion: fruits.com/v1` (assuming the resource version we create is `v1`).  
+* `--repo` - name of the generated Go module. As the name suggests, it can be a GitHub repository reference (e.g. `github.com/i-sergienko/banana-operator-golang`), but it doesn't have to be.  
   
 ---
 ##### Model classes
