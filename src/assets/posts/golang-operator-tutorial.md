@@ -265,41 +265,58 @@ This is all we have to do in the `Reconcile` method. From here on it's the job o
   
 ---
 ##### Create/Update event handling
-The `UpdateControl<Banana> createOrUpdateResource(Banana resource, Context<Banana> context)` method is invoked whenever a `Banana` resource is created or updated.  
-Two arguments are passed into it during invocation:  
-* `Banana resource` - the custom resource itself, in its most up-to-date state. Since it contains the `spec` field, this is where you get the desired state from.  
-* `Context<Banana> context` - contains metadata about the events. If you are only interested in the current desired state (i.e. resource `spec`), which is the case most of the time, you won't ever need to use this argument.
+Let's implement the `handleCreateOrUpdate` method.  
+Inside it, we're going to do the following:  
+* Check if our custom [finalizer](https://book.kubebuilder.io/reference/using-finalizers.html) is present on the resource. If it's not there, we'll add the finalizer, update the resource and return - since the update will trigger another reconciliation iteration, we have to end this one.  
+* If the finalizer is already there, and the desired state of our resource (represented by `spec.color`) is different from the observed state (represented by `status.color`), we're going to simulate processing ("paint" the `Banana`) and then update the resource status.  
   
-The result type `UpdateControl<Banana>` allows you to indicate to the framework that you'd like to update either `spec`, `status`, or both, or neither of these fields after the method returns. This is convenient if you need to update the resource, but don't want to call Kubernetes API explicitly in your code.  
-Specifically:  
-* Returning `UpdateControl.noUpdate()` means "don't update anything". No API calls are issued after the method returns.  
-* Returning `UpdateControl.updateCustomResource(resource)` allows to update the `spec` field after the method returns. This is the equivalent of calling `kubectl apply -f banana.yaml`, so **this will generate another update event**.
-Make sure that at some point you return some other option, otherwise the controller is going to be stuck in an infinite loop of update events which it itself generates.
-* Returning `UpdateControl.updateStatusSubResource(resource)` allows to update the `status` field. This will not generate any new update events, so it's a valid "exit" point.  
-* Returning `UpdateControl.updateCustomResourceAndStatus(resource)` allows to update both `spec` and `status`. This will generate update events, hence the infinite loop risk - take the same care as with the `UpdateControl.updateCustomResource` option.
+If you're confused by what a finalizer is, it's basically a marker that tells Kubernetes not to delete the resource from the database until it has been processed by the controller.  
+A controller places a finalizer on the resource the first time it sees it (on create/update), and removes it as part of the deletion event handling.  
+As long as there is at least one finalizer present on the resource, it will not be deleted from the database.  
   
-So what does our example controller do on creation/update event? Let's take a look:  
+The whole create/update handling looks like this:  
 ```
-    public UpdateControl<Banana> createOrUpdateResource(Banana resource, Context<Banana> context) {
-        if (resource.getStatus() == null || !resource.getSpec().getColor().equals(resource.getStatus().getColor())) {
-            BananaStatus status = new BananaStatus();
-            status.setColor(resource.getSpec().getColor());
-            resource.setStatus(status);
+func (r *BananaReconciler) handleCreateOrUpdate(ctx *context.Context, banana *fruitscomv1.Banana, log *logr.Logger) error {
+	if !controllerutil.ContainsFinalizer(banana, BananaFinalizer) {
+		// If the finalizer is not yet present, add it
+		controllerutil.AddFinalizer(banana, BananaFinalizer)
+		err := r.Update(*ctx, banana)
 
-            paintBanana(resource);
+		if err != nil {
+			(*log).Error(err, "Failed to add finalizer", "bananaResource", banana)
+			return err
+		}
+	} else if banana.Spec.Color != banana.Status.Color {
+		// If spec.color != status.color, we need to "paint" the Banana resource
+		// Simulate work. In a real app you'd do your useful work here - e.g. call external API, create k8s objects, etc.
+		err := r.processBanana(banana, log)
 
-            return UpdateControl.updateStatusSubResource(resource);
-        } else {
-            return UpdateControl.noUpdate();
-        }
-    }
+		if err != nil {
+			(*log).Error(err, "Failed to process Banana", "bananaResource", banana)
+			return err
+		}
+
+		(*log).Info("Updating Banana Status.", "bananaResource", banana)
+		err = r.Status().Update(context.Background(), banana)
+
+		if err != nil {
+			(*log).Error(err, "Failed to update Banana status", "bananaResource", banana)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *BananaReconciler) processBanana(banana *fruitscomv1.Banana, log *logr.Logger) error {
+	(*log).Info("Painting Banana", "bananaResource", banana)
+	// Pretend that painting the Banana takes 3 seconds - e.g. external API calls take that much
+	time.Sleep(3 * time.Second)
+	banana.Status.Color = banana.Spec.Color
+	(*log).Info("Banana painted successfully", "bananaResource", banana)
+	return nil
+}
 ```
-If the resource `status` is empty, it means the Banana hasn't been processed (painted the right color) yet.  
-If the `status.color` is not empty, but is different from `spec.color`, that means we have to re-paint the Banana.  
-In both of these cases we set `status.color` to the correct value, and simulate some work by invoking the `paintBanana` method. `paintBanana` will just sleep for 3 seconds, but in a real use case this is where you'd do your useful work - e.g. invoke external APIs, create new k8s objects, etc.  
-After we've processed our resource (painted the banana), we return `UpdateControl.updateStatusSubResource(resource)` so that the `status` field for the resource is updated in the cluster and next time we get an event for it, we remember we've already processed it.
-  
-If the `status` is present and `status.color == spec.color`, we don't need to do any work or update anything - hence, we just return `UpdateControl.noUpdate()`.  
   
 ---
 ##### Deletion event handling
