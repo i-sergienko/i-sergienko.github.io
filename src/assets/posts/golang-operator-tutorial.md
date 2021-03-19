@@ -358,37 +358,17 @@ func (r *BananaReconciler) cleanUpBanana(banana *fruitscomv1.Banana, log *logr.L
 ```
 
 ___
-##### Wiring it all up and starting the application
-At this point we have everything we need to handle the events happening to Custom Resources - just a little bit of initialization remains to be done.  
+##### Starting the application
+At this point we have all the code we need to actually run the application.  
+To run it against the Kubernetes cluster you have configured locally (using your `~/.kube/config` file), run the following commands:
+* `make install` - this will install the CRD into the cluster. Specifically, it will render the templates inside the `config/crd` directory using `kustomize` and apply them.  
+* `make run` - this will start the controller app locally.  
+You can run `kubectl apply`/`kubectl delete` commands with `Banana` resources and see that it works.  
   
-In your `com.fruits.bananacontroller.BananaControllerApplication` class (or whatever it is you have annotated with `@SpringBootApplication`) define the following `@Bean`s:  
-```
-    @Bean
-    public KubernetesClient kubernetesClient() {
-        return new DefaultKubernetesClient();
-    }
-
-    @Bean
-    public Operator operator(
-            KubernetesClient client,
-            List<ResourceController<?>> controllers
-    ) {
-        Operator operator = new Operator(client, DefaultConfigurationService.instance());
-        controllers.forEach(operator::register);
-        return operator;
-    }
-```
+As fun as it is to run it locally, you'll probably want to deploy your controller to a real cluster sooner or later.  
+You'll also want to write integration tests that check the functionality in a realistic environment.  
   
-The `kubernetesClient` method initializes the `KubernetesClient` instance that will be used by Java Operator SDK to call Kubernetes API and subscribe to events.  
-`new DefaultKubernetesClient()` initializes a default client that will either read your `$HOME/.kube/config` file if you're running the app locally, or read the pod's `ServiceAccount` credentials if you're running it inside the cluster.  
-There is normally no need to manually pass any credentials there.  
-  
-The `operator` method "registers" all of the `ResourceController` implementations you've defined (in our case it's only the `BananaController` class), using the `KubernetesClient` we initialized earlier to subscribe to Custom Resource events.  
-  
-This is it - the Java coding part is done, you can now build and deploy the app to the cluster.  
-Of course, we also have to write integration tests for our controller, to make sure it actually works. That will be covered in the next part of the tutorial.  
-
-We will cover the building/deployment process last.  
+We will cover the integration testing first, and then we'll cover deployment.  
   
 ___
 ##### Testing the Controller application
