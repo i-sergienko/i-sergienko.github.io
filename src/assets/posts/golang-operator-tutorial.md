@@ -155,37 +155,47 @@ func (r *BananaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 ```  
-Let's break down the method parameters:  
-* Parameter: `ctx context.Context` - TODO
+This method is invoked any time a `Banana` resource changes in the cluster - e.g. when you run `kubectl apply -f banana.yaml` or `kubectl delete banana banana-name`.  
+Before we implement it, let's take a look at the parameters and the result type.
+
+Let's first break down the method parameters:  
+* Parameter: `ctx context.Context` - performs dark voodoo magic allowing us to call the Kubernetes API. You don't need to know exactly what it does at this point - just note that we'll pass it to the Kubernetes client to make API calls.  
 * Parameter: `req ctrl.Request` - carries some metadata of the resource being changed - namely, you can get the `Name` and the `Namespace` of the resource (or the `NamespacedName` which combines them). Using that metadata, you can actually retrieve the resource from Kubernetes API.  
   
-The result type `(ctrl.Result, error)` allows to control TODO
+The result type `(ctrl.Result, error)` allows you control reconciliation scheduling.  
+The following values are possible:  
+* `ctrl.Result{}, nil` - signals to stop reconciliation. If you return this, the `Reconcile` method will not be invoked again unless another event is generated externally.  
+* `ctrl.Result{}, err` - signals that an error occurred during reconciliation. If you return this, the controller will retry (by calling the `Reconcile` method again) until the handling succeeds, or indefinitely.  
+* `ctrl.Result{Requeue: true}, nil` - signals to repeat reconciliation. Just like with the previous option, beware of an infinite reconciliation loop if you return this.  
+* `ctrl.Result{RequeueAfter: 3 * time.Minute}, nil` - signals to repeat the reconciliation after the specified period (3 minutes in this example). Useful if you need periodic reconciliation aside from just reacting to events.
   
-This method is invoked any time a `Banana` resource changes in the cluster - e.g. when you run `kubectl apply -f banana.yaml` or `kubectl delete banana banana-name`.  
-So there are 2 types of events we need to be able to handle:  
+Now that we know what we're getting as input and producing as output, we can start implementing the event handling logic.  
+There are 2 types of events we need to be able to handle:  
 * "Create"/"update" event - we cannot reliably distinguish between the two, so they are treated as one type.  
   "Create"/"update" event handler assures that the actual state of the resource matches its desired state (as defined in `spec`). For example, if your Custom Resource is `CloudVirtualMachine`, during the "create"/"update" stage you would issue API calls to the cloud provider to check that if a VM instance with the desired specifications is running, and if it isn't, you'd issue an API call to launch it.  
 * "Delete" event - handling this event typically involves some cleanup logic. For example, if your Custom Resource is `CloudVirtualMachine` and during your "create"/"update" stage you created a VM instance in the cloud, during the cleanup stage you would invoke the API calls to the cloud provider to shut down/delete the VM.
   
-Since the handling logic for the 2 event types is different, let's define dedicated methods for each of them - that way concerns are separated, and the code is more readable:  
+Since the handling logic for the 2 event types is different, let's define dedicated methods for each of them - that way concerns are separated, and the code is more readable.  
+We will just define the signatures for now, and implement them later:  
 ```
 func (r *BananaReconciler) handleCreateOrUpdate(ctx *context.Context, banana *fruitscomv1.Banana, log *logr.Logger) error {
-	return nil
+  // Creates and updates will be handled here
+  return nil
 }
 
 func (r *BananaReconciler) handleDelete(ctx *context.Context, banana *fruitscomv1.Banana, log *logr.Logger) error {
+  // Deletes will be handled here
   return nil
 }
-```  
-The methods are currently not doing anything - we will implement them later.  
-
+``` 
+  
 ##### IMPORTANT: both of these methods have to be IDEMPOTENT.
 That is, when invoked multiple times, they should produce the same result - e.g. if the resource is already handled, there might not be a need to process it again, and your controller should realize that.  
-The reason for the idempotency requirement is that the framework can only guarantee *at least once* delivery of events - that means that one event might sometimes be passed to the handler multiple times.  
+The reason for the idempotency requirement is that the framework can only guarantee *at least once* delivery of events - that means that one event might sometimes be passed to the handler multiple times.
   
-With that out of the way, let's take a look at how the 2 methods work.  
-  
-We obviously have to call the two methods from somewhere - that somewhere being the `Reconcile` method, so let's implement it first:  
+___
+##### Dispatching from the Reconcile method
+We obviously have to call the two methods (`handleCreateOrUpdate`/`handleDelete`) from somewhere - that somewhere being the `Reconcile` method, so let's implement it first:  
 ```
 func (r *BananaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("banana", req.NamespacedName)
@@ -215,7 +225,43 @@ func (r *BananaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 }
 ```  
+  
+Quite a lot happening here, so let's break it down.  
+  
+First of all, when the method is invoked, we need to retrieve the affected `Banana` resource.  
+The resource is not passed to us right away, instead we have the `req ctrl.Request` metadata containing the resource's name and namespace.  
+We can use this metadata to retrieve the resource from the API:  
+```
+	// Retrieve the Banana resource being updated from the Kubernetes API
+	banana := &fruitscomv1.Banana{}
+	err := r.Get(ctx, req.NamespacedName, banana)
+	if err != nil {
+		if errors.IsNotFound(err) {
+		  // If Banana is not found, we don't have to do anything - just ignore the event
+			log.Info("Banana not found: ignoring resource.", "namespacedName", req.NamespacedName)
+			return ctrl.Result{}, nil
+		}
 
+		log.Error(err, "Failed to retrieve Banana", "namespacedName", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+```
+  
+If we've successfully retrieved the resource, we can call either the `handleCreateOrUpdate` method or the `handleDelete` method:  
+```
+	if banana.GetDeletionTimestamp() == nil {
+		// If deletion timestamp is not present, the resource must have been created or updated
+		// Resource processing is performed in `handleCreateOrUpdate`
+		return ctrl.Result{}, r.handleCreateOrUpdate(&ctx, banana, &log)
+	} else {
+		// If deletion timestamp is there, the resource must have been deleted
+		// Additional cleanup is performed in `handleDelete`
+		return ctrl.Result{}, r.handleDelete(&ctx, banana, &log)
+	}
+```
+The event type is not passed to us either, so to distinguish between creates/updates and deletes we take a look at the deletion timestamp.  
+  
+This is all we have to do in the `Reconcile` method. From here on it's the job of either `handleCreateOrUpdate` or `handleDelete` to process the event. We will take a look at them next.  
   
 ---
 ##### Create/Update event handling
