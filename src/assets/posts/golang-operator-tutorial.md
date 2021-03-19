@@ -260,6 +260,7 @@ If we've successfully retrieved the resource, we can call either the `handleCrea
 	}
 ```
 The event type is not passed to us either, so to distinguish between creates/updates and deletes we take a look at the deletion timestamp.  
+If the deletion timestamp is present, it means the resource has been deleted, and we need to clean it up. Otherwise we consider it a create/update event.  
   
 This is all we have to do in the `Reconcile` method. From here on it's the job of either `handleCreateOrUpdate` or `handleDelete` to process the event. We will take a look at them next.  
   
@@ -320,25 +321,42 @@ func (r *BananaReconciler) processBanana(banana *fruitscomv1.Banana, log *logr.L
   
 ---
 ##### Deletion event handling
-The second method's signature looks like this: `DeleteControl deleteResource(Banana resource, Context<Banana> context)`  
-The method handles deletion events (mind-blowing, I know).  
-The parameters are the same as in `createOrUpdateResource`, but the result type is different.  
-`DeleteControl` is an `enum` with 2 values:  
-* `DEFAULT_DELETE` - this means that the controller has processed the deletion event successfully, and Kubernetes can safely remove the resource from its internal DB.  
-* `NO_FINALIZER_REMOVAL` - this means that the controller objects to the resource being deleted. The resource **WILL NOT** be deleted from the cluster if this value is returned.  
+Now let's implement the `handleDelete` method.  
   
-Read about [finalizers](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#finalizers) if you're curious how it's possible for a Custom Controller to prevent resource deletion.  
+It's going to do the following:
+* Run the necessary cleanup logic. We're just going to simulate it in the `cleanUpBanana` method, but in a real use case this is where you'd make sure the associated resources are properly deleted, e.g. issue a `DELETE` API call to your cloud provider.  
+* If the cleanup logic was successful, we remove our custom finalizer that we added earlier during create/update processing, thus notifying Kubernetes that the resource can now be deleted from the database.  
   
-In our simple implementation we're just going to always return `DEFAULT_DELETE`, allowing to delete the `Banana` resource.  
-   
-___
-##### Reconciliation
-As you might have noticed, our `BananaController` class only reacts to incoming events - it doesn't do any reconciliation.  
-For our simple example use case we don't really need reconciliation, since `Banana` resources don't change their actual state unexpectedly.  
-  
-Reconciliation is out of scope of this tutorial, but if you need it, take a look at the `io.javaoperatorsdk.operator.processing.event.internal.TimerEventSource` class and its `schedule` method.  
-The way to achieve reconciliation would be to create this event source at app startup, register it in the event source manager by overriding the `BananaController.init(EventSourceManager eventSourceManager)` method, list all the existing `Banana` resources programmatically and call `TimerEventSource.schedule` for each of them. Don't forget to also schedule an event for every newly created `Banana` resource.  
-  
+The logic looks like this:  
+```
+func (r *BananaReconciler) handleDelete(ctx *context.Context, banana *fruitscomv1.Banana, log *logr.Logger) error {
+	(*log).Info("Banana is being deleted", "bananaResource", banana)
+	if controllerutil.ContainsFinalizer(banana, BananaFinalizer) {
+		// Run cleanup logic (external API calls, etc.)
+		if err := r.cleanUpBanana(banana, log); err != nil {
+			return err
+		}
+
+		// Remove the finalizer if cleanup was successful. Once the finalizer is removed, k8s will delete the resource from etcd.
+		controllerutil.RemoveFinalizer(banana, BananaFinalizer)
+		err := r.Update(*ctx, banana)
+
+		if err != nil {
+			(*log).Error(err, "Failed remove finalizer", "bananaResource", banana)
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *BananaReconciler) cleanUpBanana(banana *fruitscomv1.Banana, log *logr.Logger) error {
+	(*log).Info("Cleaning up Banana", "bananaResource", banana)
+	time.Sleep(3 * time.Second) // pretend that some external API calls or other cleanup take 3 seconds
+	(*log).Info("Banana cleaned up successfully", "bananaResource", banana)
+	return nil
+}
+```
+
 ___
 ##### Wiring it all up and starting the application
 At this point we have everything we need to handle the events happening to Custom Resources - just a little bit of initialization remains to be done.  
