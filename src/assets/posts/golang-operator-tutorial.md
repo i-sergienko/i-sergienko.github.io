@@ -395,82 +395,146 @@ To test a Kubernetes Controller, we will need to do the following:
 * Build and deploy our app to the cluster. We've already covered how to do this in the previous section, but there will be slight differences to that process when using [KiND](https://kind.sigs.k8s.io/docs/user/quick-start/).  
 * Write integration tests that actually launch the app, instead of testing classes in isolation - we will use Spring Boot Test library to do that.
 * Run our integration tests on the same machine where we launched [KiND](https://kind.sigs.k8s.io/docs/user/quick-start/).  
+  
+Instead of launching an actual cluster, you could use [the EnvTest package](https://sdk.operatorframework.io/docs/building-operators/golang/testing/).  
+EnvTest only launches the Control Plane, instead of an actual k8s cluster. Operator SDK docs suggest that it's easier to use it in CI. However, I personally found it more difficult to set up than launching KiND, which is why we're not going to use EnvTest in this tutorial.
 
 ---
 ##### Writing integration tests
 As an example, we'll write a simple test that programmatically creates a `Banana` resource in the cluster, waits for it to be painted the desired color, and then deletes the `Banana`.  
   
-Inside *src/test/java* directory create a *com.fruits.bananacontroller.BananaControllerApplicationTests* class with the following content:  
+Operator SDK suggests using [the Ginkgo framework](https://onsi.github.io/ginkgo/) for testing controller applications.
+You'll see that Operator SDK has already generated some setup logic for us inside the `controllers/suite_test.go` file:  
 ```
-@SpringBootTest
-class BananaControllerApplicationTests {
+func TestAPIs(t *testing.T) {
+	RegisterFailHandler(Fail)
 
-    @Test
-    public void bananaIsPainted() {
-        // Create a banana in the 'default' namespace with spec.color = 'white' and metadata.name = 'white-banana'
-        BananaSpec spec = new BananaSpec();
-        spec.setColor("white");
-        Banana banana = new Banana();
-        banana.getMetadata().setName("white-banana");
-        banana.getMetadata().setNamespace("default");
-        banana.setSpec(spec);
-
-        // There are no bananas before we create one
-        assertEquals(0, listBananas("default").size());
-
-        // Create a banana
-        applyBanana(banana);
-        // Now there is one banana - the one we created
-        List<Banana> bananas = listBananas("default");
-        assertEquals(1, bananas.size());
-        assertEquals(banana.getMetadata().getName(), bananas.get(0).getMetadata().getName());
-        assertEquals(banana.getSpec().getColor(), bananas.get(0).getSpec().getColor());
-        // Color in the 'status' subresource is null - the operator hasn't run yet
-        assertNull(bananas.get(0).getStatus().getColor());
-
-        // Wait for the banana to be painted
-        safeWait(4000);
-
-        bananas = listBananas("default");
-        assertEquals(1, bananas.size());
-        assertNotNull(bananas.get(0).getStatus().getColor());
-        assertEquals(banana.getSpec().getColor(), bananas.get(0).getStatus().getColor());
-
-        // Delete the banana
-        deleteBanana(banana);
-        safeWait(3000);
-
-        // The banana list should again be empty
-        assertEquals(0, listBananas("default").size());
-    }
-    
-    // Utility methods omitted - see the repository for details
-
-    private void safeWait(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
-    }
+	RunSpecsWithDefaultAndCustomReporters(t,
+		"Controller Suite",
+		[]Reporter{printer.NewlineReporter{}})
 }
-```
+
+var _ = BeforeSuite(func() {
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	By("bootstrapping test environment")
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+	}
+
+	cfg, err := testEnv.Start()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(cfg).NotTo(BeNil())
+
+	err = fruitscomv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// +kubebuilder:scaffold:scheme
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
+
+}, 60)
+
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	err := testEnv.Stop()
+	Expect(err).NotTo(HaveOccurred())
+})
+```  
+This works perfectly fine - we will not need to touch any of this.  
+All we need to do is actually create some test cases.
   
-I omitted the `applyBanana`/`deleteBanana` and `listBananas` utility methods - they are programmatic equivalents of `kubectl apply`/`kubectl delete` and `kubectl get` commands, respectively, but programmatic access to Kubernetes API is out of scope of this tutorial.  
-For the details see [the project repository](https://github.com/i-sergienko/banana-operator/blob/main/src/test/java/com/fruits/bananacontroller/BananaControllerApplicationTests.java), but note that I did not implement them in the most elegant way - just enough to make the tests work.  
-  
-The interesting part is the `bananaIsPainted` method. It does the following in the specified order:  
-* Checks that no `Banana` resources exist at the start of the test.  
-* Creates a `Banana` resource in the `default` namespace with `metadata.name = white-banana` and `spec.color = white`.
-* Lists the `Banana` resources again, and checks that there is now 1 `Banana` - the one that we created.  
-* Checks that the created `Banana` doesn't have a `status.color` field fillied yet - that is because we retrieve the resources immediately after creating one. The processing of a `Banana` by our Controller application takes 3 seconds, so immediately after creation it shouldn't be "painted" yet.  
-* Wait 4 seconds for the `Banana` to be processed by our Controller.  
-* List the `Banana` resources again, and check that this time our only `Banana` has `spec.color == status.color`, i.e. that it has been successfully "painted" and the `status` field has been updated by the Controller.  
-* Deletes the `Banana`, and waits for 3 seconds for the cluster to clean up the resource.
-* Checks that no `Banana` resources exist after we've deleted our only one.  
+Let's describe our test cases before we code them. Our tests will do the following, in the order specified:  
+1. Check that create/update handling works:  
+   * Check that no `Banana` resources exist at the start of the test. We haven't created any, so there shouldn't be any.  
+   * Create a `Banana` resource with name `yellow-banana` in the default namespace, and check that immediately after creation the `status.color` value doesn't yet match `spec.color` - that is because the Controller app takes 3 seconds to process a new `Banana` resource (see `BananaReconciler.processBanana` method we created earlier).  
+   * Wait 5 seconds for the processing to finish, and check the `status.color` field again. This time it should be the same as `spec.color`, since the Controller must have "painted" the `Banana`.  
+4. Check that the cleanup logic works:  
+   * Make sure the deletion timestamp of our `Banana` is `nil` before we delete it.
+   * Delete the `Banana` and check that now the deletion timestamp is present. 
+   * Check that immediately after deletion our custom finalizer `"bananas.fruits.com/finalizer"` is still there. It should not be removed until the Controller has processed the delete event, which takes 3 seconds.  
+   * Wait 5 seconds for the processing to finish, and check that there is now no `Banana` resource named `yellow-banana` in our cluster.
   
 Nothing complex, but this should be enough to show that our Controller app functions in a real Kubernetes environment.  
-Now to the interesting part - how do we create that environment?  
+Let's write our tests in the same `controllers/suite_test.go` file we saw earlier, for simplicity  
+Append this to the end of the file:  
+```
+var _ = Describe("Banana lifecycle", func() {
+	It("Before we create a Banana, there aren't any", func() {
+		bananas := fruitscomv1.BananaList{}
+
+		err := k8sClient.List(context.Background(), &bananas, client.InNamespace("default"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(bananas.Items)).To(BeEquivalentTo(0))
+	})
+
+	It("A newly created Banana is not painted before processing", func() {
+		banana := fruitscomv1.Banana{
+			Spec: fruitscomv1.BananaSpec{Color: "yellow"},
+		}
+		banana.Name = "yellow-banana"
+		banana.Namespace = "default"
+
+		err := k8sClient.Create(context.Background(), &banana)
+		Expect(err).NotTo(HaveOccurred())
+
+		bananas := fruitscomv1.BananaList{}
+		err = k8sClient.List(context.Background(), &bananas, client.InNamespace("default"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(bananas.Items)).To(BeEquivalentTo(1))
+		Expect(bananas.Items[0].Name).To(BeEquivalentTo("yellow-banana"))
+		Expect(bananas.Items[0].Spec.Color).To(BeEquivalentTo("yellow"))
+		Expect(bananas.Items[0].Status.Color).NotTo(BeEquivalentTo("yellow"))
+	})
+
+	It("New Bananas are painted by the controller", func() {
+		time.Sleep(5 * time.Second)
+
+		banana := fruitscomv1.Banana{}
+		err := k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: "default",
+			Name:      "yellow-banana",
+		}, &banana)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(banana.Name).To(BeEquivalentTo("yellow-banana"))
+		Expect(banana.Spec.Color).To(BeEquivalentTo("yellow"))
+		Expect(banana.Status.Color).To(BeEquivalentTo("yellow"))
+	})
+
+	It("Deleted bananas go through cleanup logic", func() {
+		banana := fruitscomv1.Banana{}
+		err := k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: "default",
+			Name:      "yellow-banana",
+		}, &banana)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(banana.GetDeletionTimestamp()).To(BeNil())
+
+		err = k8sClient.Delete(context.Background(), &banana)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: "default",
+			Name:      "yellow-banana",
+		}, &banana)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(controllerutil.ContainsFinalizer(&banana, BananaFinalizer)).To(BeTrue())
+		Expect(banana.GetDeletionTimestamp()).NotTo(BeNil())
+
+		time.Sleep(5 * time.Second)
+		err = k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: "default",
+			Name:      "yellow-banana",
+		}, &banana)
+		Expect(err).To(HaveOccurred())
+		Expect(errors.IsNotFound(err)).To(BeTrue())
+	})
+})
+```
+  
+All we have to do now is launch a testing environment and run the tests.  
   
 ---
 ##### Preparing the testing environment and running the tests
