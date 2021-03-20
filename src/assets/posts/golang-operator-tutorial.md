@@ -380,7 +380,7 @@ To deploy the app to an actual cluster, we need to do the following:
   To push an image, you obviously need an image registry, so if you only plan to use the app locally, skip this step.
 * Deploy the application to your Kubernetes cluster by running `make deploy`. This command will also use the previously exported `$IMG` environment variable, so make sure it's exported when you run the command.  
   The command will do the following:  
-  1. Render all the k8s manifest templates in the `config/` - that includes a dedicated `Namespace` for the app, the `CustomResourceDefinition`, the app `Deployment` and all the necessary roles/cluster roles and bindings.
+  1. Render all the k8s manifest templates in the `config/` - that includes a dedicated `Namespace` for the app, the `CustomResourceDefinition`, the app `Deployment` and all the necessary roles/cluster roles and bindings. Note that all of the resource names will be prefixed with the project name (which happens to be `banana-operator-golang` in this tutorial), and the project name is the same as name of the directory in which we've generated it.  
   2. Apply the rendered templates to your k8s cluster using your local `~/.kube/config` file. So make sure your `kubectl` is pointing at the correct cluster, if your local config contains credentials for mulltiple clusters.
   
 If you need to "undeploy" the Controller app and the CRDs, just run `make undeploy` - this will once again render the `config/` templates and delete the rendered resources from your cluster using `kubectl delete`.  
@@ -393,18 +393,18 @@ Unit tests are also an important part of testing most applications, but I will n
 To test a Kubernetes Controller, we will need to do the following:  
 * Launch an actual Kubernetes cluster to test our controller against - we will use [Kubernetes In Docker (KiND)](https://kind.sigs.k8s.io/docs/user/quick-start/) to launch a temporary single-node Kubernetes cluster in a Docker container. That way we can avoid the lengthy setup of a proper cluster or launching it in the cloud, and can just run the cluster right inside our CI pipelines.  
 * Build and deploy our app to the cluster. We've already covered how to do this in the previous section, but there will be slight differences to that process when using [KiND](https://kind.sigs.k8s.io/docs/user/quick-start/).  
-* Write integration tests that actually launch the app, instead of testing classes in isolation - we will use Spring Boot Test library to do that.
+* Write integration tests using [the Ginkgo framework](https://onsi.github.io/ginkgo/) that will talk directly to the API of our cluster.  
 * Run our integration tests on the same machine where we launched [KiND](https://kind.sigs.k8s.io/docs/user/quick-start/).  
   
-Instead of launching an actual cluster, you could use [the EnvTest package](https://sdk.operatorframework.io/docs/building-operators/golang/testing/).  
-EnvTest only launches the Control Plane, instead of an actual k8s cluster. Operator SDK docs suggest that it's easier to use it in CI. However, I personally found it more difficult to set up than launching KiND, which is why we're not going to use EnvTest in this tutorial.
+Instead of launching an actual cluster, you could use [the EnvTest package](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest).  
+EnvTest only launches the Control Plane, instead of an actual k8s cluster. [Operator SDK docs](https://sdk.operatorframework.io/docs/building-operators/golang/testing/) suggest that it's easier to use it in CI. However, I personally found it more difficult to set up than launching KiND, which is why we're not going to use EnvTest in this tutorial.
 
 ---
 ##### Writing integration tests
 As an example, we'll write a simple test that programmatically creates a `Banana` resource in the cluster, waits for it to be painted the desired color, and then deletes the `Banana`.  
   
 Operator SDK suggests using [the Ginkgo framework](https://onsi.github.io/ginkgo/) for testing controller applications.
-You'll see that Operator SDK has already generated some setup logic for us inside the `controllers/suite_test.go` file:  
+You'll see that Operator SDK CLI has already generated some setup logic for us inside the `controllers/suite_test.go` file:  
 ```
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -455,10 +455,11 @@ Let's describe our test cases before we code them. Our tests will do the followi
    * Make sure the deletion timestamp of our `Banana` is `nil` before we delete it.
    * Delete the `Banana` and check that now the deletion timestamp is present. 
    * Check that immediately after deletion our custom finalizer `"bananas.fruits.com/finalizer"` is still there. It should not be removed until the Controller has processed the delete event, which takes 3 seconds.  
-   * Wait 5 seconds for the processing to finish, and check that there is now no `Banana` resource named `yellow-banana` in our cluster.
+   * Wait 5 seconds for the processing to finish, and check that there is now no `Banana` resource named `yellow-banana` in our cluster, i.e. it has been successfully deleted.  
   
 Nothing complex, but this should be enough to show that our Controller app functions in a real Kubernetes environment.  
-Let's write our tests in the same `controllers/suite_test.go` file we saw earlier, for simplicity  
+
+Let's write our tests in the same `controllers/suite_test.go` file we saw earlier, for simplicity.  
 Append this to the end of the file:  
 ```
 var _ = Describe("Banana lifecycle", func() {
@@ -557,7 +558,7 @@ For an example of a full build/test pipeline you can refer to [the github workfl
   
 ___
 ##### That's it!
-You've built your first Kubernetes Operator in Golang, or at least you've read this whole article.️
+You've built your first Kubernetes Operator in Golang, or at least you've read this whole article.️  
   
 Be sure to also take a look at [the Operator SDK docs](https://sdk.operatorframework.io/docs/building-operators/golang/).  
-For a deeper understanding of the framework it also helps to read [the Kubebuilder book](https://book.kubebuilder.io/), and for understanding of the Kubernetes API in general you can refer to [Programming Kubernetes] (https://www.oreilly.com/library/view/programming-kubernetes/9781492047094/).  
+For a deeper understanding of the framework it also helps to read [the Kubebuilder book](https://book.kubebuilder.io/), and for understanding of the Kubernetes API in general you can refer to [Programming Kubernetes](https://www.oreilly.com/library/view/programming-kubernetes/9781492047094/).  
