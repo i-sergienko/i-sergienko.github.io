@@ -544,11 +544,14 @@ Make sure [Docker](https://docs.docker.com/engine/install/), [KiND](https://kind
   
 Run `kind create cluster` to start up a local single-node Kubernetes cluster.  
   
-Once the cluster is up and running, we need to apply the CRD to register our new custom resource.  
-Run `kubectl apply banana-crd.yaml`. Use the [*ops/banana-crd.yaml*](https://github.com/i-sergienko/banana-operator/blob/main/ops/banana-crd.yaml) file from the project repository.  
+Once the cluster is up and running, we need to build and deploy our Controller app:  
+* Run `export IMG='banana-controller:v1'` to set a name for a docker image we're about to build. We will not need to push it anywhere at this stage. Make sure not to use the `:latest` tag - [it doesn't work well with KiND](https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster).  
+* Run `make docker-build` to build a local Docker image.  
+* Run `kind load docker-image $IMG` to load the image to KiND - without this step it will not be able to use it.  
+* Run `make deploy` to render and apply the k8s manifest templates from `config/`.
   
-Now that we have the cluster running and the CRD registered, we can actually execute our tests.  
-Run `./mvnw package` to run the integration tests and build the app. If the tests are successful, you'll now also have the app packed into a `.jar` file, ready for being built into a Docker container.  
+Now that we have the cluster running, and the Controller app is deployed, we can actually execute our tests. You might need to wait 10-20 seconds for the Controller to start up before running tests, depending on the environment (e.g. my workflow in GitHub Actions sleeps for 20 seconds between deploying the app and running tests).  
+Run `export USE_EXISTING_CLUSTER=true; make test` to run the integration tests against the cluster pointed at by your local `~/.kube/config` file (which happens to be the KiND cluster we started earlier).  
   
 ---
 ##### Building the application image
