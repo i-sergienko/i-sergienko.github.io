@@ -14,6 +14,13 @@
     "path": "/assets/posts/java-operator-tutorial.md"
   },
   {
+    "name": "golang-operator-tutorial",
+    "title": "Build a Kubernetes Operator in Go",
+    "description": "Understand how to build a basic Kubernetes Operator in Go, using the Operator SDK framework. Learn how to test it and deploy it.",
+    "format": "md",
+    "path": "/assets/posts/golang-operator-tutorial.md"
+  },
+  {
     "name": "terraform-vs-kuberentes-operators",
     "title": "Terraform vs. Kubernetes Operators",
     "description": "Which one should you pick when both seem to do the trick?",
