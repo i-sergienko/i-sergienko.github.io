@@ -1,13 +1,14 @@
-import {AfterViewInit, Component, OnInit, ViewChild} from '@angular/core';
-import {WebGlScene} from "../3d-scene/scene";
+import {Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {WebGlScene} from '../3d-scene/scene';
 
 @Component({
   selector: 'app-about',
   templateUrl: './about.component.html',
   styleUrls: ['./about.component.css']
 })
-export class AboutComponent implements OnInit, AfterViewInit {
-  @ViewChild('canvasElement') canvasElement: HTMLElement;
+export class AboutComponent implements OnInit, OnDestroy {
+  @ViewChild('canvasElement', {static: true})
+  canvas: ElementRef<HTMLCanvasElement>;
 
   private scene?: WebGlScene;
 
@@ -16,9 +17,16 @@ export class AboutComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.scene = new WebGlScene(this.canvas.nativeElement, window.innerWidth, window.innerHeight);
+    this.scene.addBox();
   }
 
-  ngAfterViewInit(): void {
-    this.scene = new WebGlScene(this.canvasElement, window.innerWidth, window.innerHeight);
+  ngOnDestroy(): void {
+    console.log('Destroying about');
+    this.scene?.onDestroy();
+  }
+
+  onResize(e: UIEvent): void {
+    this.scene.onResize(window.innerWidth, window.innerHeight);
   }
 }

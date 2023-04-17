@@ -8,5 +8,5 @@
       </div>
     </div>
   </div>
-  <canvas class="webgl" #canvasElement></canvas>
+  <canvas class="webgl" #canvasElement (window:resize)="onResize($event)"></canvas>
 </section>

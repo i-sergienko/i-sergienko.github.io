@@ -1,9 +1,9 @@
 import {
-  ACESFilmicToneMapping,
+  ACESFilmicToneMapping, BoxGeometry,
   BufferGeometry,
   Camera,
   Material,
-  Mesh,
+  Mesh, MeshBasicMaterial,
   Object3D,
   PCFSoftShadowMap,
   PerspectiveCamera,
@@ -26,7 +26,7 @@ export class WebGlScene {
 
   private controls?: OrbitControls;
 
-  constructor(canvas: HTMLElement, viewPortWidth: number, viewPortHeight: number) {
+  constructor(canvas: HTMLCanvasElement, viewPortWidth: number, viewPortHeight: number) {
     this.viewPortSize = {
       width: viewPortWidth,
       height: viewPortHeight
@@ -54,8 +54,6 @@ export class WebGlScene {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     // Color and lights config
-    // @ts-ignore
-    this.renderer.physicallyCorrectLights = true; // apparently the field is missing in @types/three, ignoring type.
     this.renderer.outputEncoding = sRGBEncoding;
     this.renderer.toneMapping = ACESFilmicToneMapping;
     // Shadows
@@ -115,5 +113,13 @@ export class WebGlScene {
     // Update renderer
     this.renderer.setSize(this.viewPortSize.width, this.viewPortSize.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  }
+
+  addBox(): void {
+    const box = new Mesh(
+      new BoxGeometry(1, 1, 1, 1, 1, 1),
+      new MeshBasicMaterial({color: 'red'})
+    );
+    this.scene.add(box);
   }
 }
