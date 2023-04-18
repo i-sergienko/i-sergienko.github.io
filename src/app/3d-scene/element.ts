@@ -15,7 +15,7 @@ import {
 export class DirectionalLighting implements SceneElement {
   private readonly light: DirectionalLight;
   private debugObject: any;
-  private helper: any;
+  private helper: DirectionalLightHelper;
 
   constructor(color: ColorRepresentation, intensity: number = 3, position: Vector3) {
     this.debugObject = {
@@ -44,6 +44,7 @@ export class DirectionalLighting implements SceneElement {
     gui.add(this.light.position, 'x').min(-10).max(10).step(0.001).name('Light X');
     gui.add(this.light.position, 'y').min(-10).max(10).step(0.001).name('Light Y');
     gui.add(this.light.position, 'z').min(-10).max(10).step(0.001).name('Light Z');
+    gui.add(this.light, 'intensity').min(0).max(10).step(0.001).name('Light intensity');
   }
 }
 
