@@ -1,8 +1,7 @@
 import {Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {WebGlScene} from '../3d-scene/scene';
-import {Box, DirectionalLighting} from "../3d-scene/element";
-import {Vector3} from "three";
-import {element} from "protractor";
+import {Box, DirectionalLighting} from '../3d-scene/element';
+import {Vector3} from 'three';
 
 @Component({
   selector: 'app-about',
