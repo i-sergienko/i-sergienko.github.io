@@ -1,9 +1,9 @@
 import {
-  ACESFilmicToneMapping, BoxGeometry,
+  ACESFilmicToneMapping,
   BufferGeometry,
-  Camera, DirectionalLight,
+  Camera,
   Material,
-  Mesh, MeshBasicMaterial,
+  Mesh,
   Object3D,
   PCFSoftShadowMap,
   PerspectiveCamera,
@@ -22,7 +22,7 @@ export interface SceneParameters {
 }
 
 export interface SceneElement {
-  getObject(): Object3D;
+  addToScene(scene: Scene): void;
 
   setDebugParameters(gui: GUI): void;
 }
@@ -130,7 +130,7 @@ export class WebGlScene {
   }
 
   addElement(element: SceneElement): void {
-    this.scene.add(element.getObject());
+    element.addToScene(this.scene);
     if (this.guiDebugMenu !== null) {
       element.setDebugParameters(this.guiDebugMenu);
     }

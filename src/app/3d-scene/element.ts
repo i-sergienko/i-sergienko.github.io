@@ -1,14 +1,25 @@
 import {SceneElement} from './scene';
 import GUI from 'lil-gui';
-import {BoxGeometry, ColorRepresentation, DirectionalLight, Mesh, MeshBasicMaterial, Object3D, Vector3} from 'three';
+import {
+  BoxGeometry,
+  ColorRepresentation,
+  DirectionalLight,
+  DirectionalLightHelper,
+  Mesh,
+  MeshStandardMaterial,
+  Object3D,
+  Scene,
+  Vector3
+} from 'three';
 
 export class DirectionalLighting implements SceneElement {
   private readonly light: DirectionalLight;
   private debugObject: any;
+  private helper: any;
 
   constructor(color: ColorRepresentation, intensity: number = 3, position: Vector3) {
     this.debugObject = {
-      color
+      color,
     };
 
     this.light = new DirectionalLight(color, intensity);
@@ -17,10 +28,13 @@ export class DirectionalLighting implements SceneElement {
     this.light.castShadow = true;
     this.light.shadow.camera.far = 15;
     this.light.shadow.mapSize.set(1024, 1024);
+
+    this.helper = new DirectionalLightHelper(this.light);
   }
 
-  getObject(): Object3D {
-    return this.light;
+  addToScene(scene: Scene): void {
+    scene.add(this.light);
+    scene.add(this.helper);
   }
 
   setDebugParameters(gui: GUI): void {
@@ -40,7 +54,7 @@ export interface BoxDimensions {
 }
 
 export class Box implements SceneElement {
-  private readonly material: MeshBasicMaterial;
+  private readonly material: MeshStandardMaterial;
   private readonly mesh: Object3D;
   private debugObject: any;
 
@@ -48,15 +62,17 @@ export class Box implements SceneElement {
     this.debugObject = {
       color
     };
-    this.material = new MeshBasicMaterial({color});
+    this.material = new MeshStandardMaterial({
+      color,
+    });
     this.mesh = new Mesh(
       new BoxGeometry(dimensions.width, dimensions.height, dimensions.depth, 1, 1, 1),
       this.material
     );
   }
 
-  getObject(): Object3D {
-    return this.mesh;
+  addToScene(scene: Scene): void {
+    scene.add(this.mesh);
   }
 
   setDebugParameters(gui: GUI): void {
