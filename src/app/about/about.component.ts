@@ -1,5 +1,8 @@
 import {Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {WebGlScene} from '../3d-scene/scene';
+import {Box, DirectionalLighting} from "../3d-scene/element";
+import {Vector3} from "three";
+import {element} from "protractor";
 
 @Component({
   selector: 'app-about',
@@ -23,7 +26,7 @@ export class AboutComponent implements OnInit, OnDestroy {
       orbitControls: true,
       debugMenu: true
     });
-    this.scene.addBox();
+    this.buildScene();
   }
 
   ngOnDestroy(): void {
@@ -33,5 +36,15 @@ export class AboutComponent implements OnInit, OnDestroy {
 
   onResize(e: UIEvent): void {
     this.scene.onResize(window.innerWidth, window.innerHeight);
+  }
+
+  private buildScene(): void {
+    const light = new DirectionalLighting('#ff68cc', 3, new Vector3(0.25, 3, -2.25));
+    this.scene.addElement(light);
+
+    const box = new Box({
+      width: 1, height: 1, depth: 1
+    }, 'red');
+    this.scene.addElement(box);
   }
 }

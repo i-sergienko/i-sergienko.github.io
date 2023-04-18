@@ -21,6 +21,12 @@ export interface SceneParameters {
   debugMenu: boolean;
 }
 
+export interface SceneElement {
+  getObject(): Object3D;
+
+  setDebugParameters(gui: GUI): void;
+}
+
 export class WebGlScene {
   private parameters: SceneParameters;
 
@@ -28,8 +34,8 @@ export class WebGlScene {
   private readonly camera: Camera;
   private renderer: WebGLRenderer;
 
-  private controls?: OrbitControls;
-  private guiDebugMenu: GUI;
+  private controls: OrbitControls | null = null;
+  private guiDebugMenu: GUI | null = null;
 
   constructor(canvas: HTMLCanvasElement, parameters: SceneParameters) {
     this.parameters = parameters;
@@ -123,19 +129,10 @@ export class WebGlScene {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   }
 
-  addBox(): void {
-    const box = new Mesh(
-      new BoxGeometry(1, 1, 1, 1, 1, 1),
-      new MeshBasicMaterial({color: 'red'})
-    );
-    this.scene.add(box);
-  }
-
-  addLights(): void {
-    const directionalLight = new DirectionalLight('#ff68cc', 3);
-    directionalLight.position.set(0.25, 3, -2.25);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.camera.far = 15;
-    directionalLight.shadow.mapSize.set(1024, 1024);
+  addElement(element: SceneElement): void {
+    this.scene.add(element.getObject());
+    if (this.guiDebugMenu !== null) {
+      element.setDebugParameters(this.guiDebugMenu);
+    }
   }
 }
