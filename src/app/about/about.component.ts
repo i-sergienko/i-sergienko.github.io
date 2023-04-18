@@ -17,7 +17,12 @@ export class AboutComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.scene = new WebGlScene(this.canvas.nativeElement, window.innerWidth, window.innerHeight);
+    this.scene = new WebGlScene(this.canvas.nativeElement, {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      orbitControls: true,
+      debugMenu: true
+    });
     this.scene.addBox();
   }
 

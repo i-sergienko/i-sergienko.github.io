@@ -1,7 +1,7 @@
 import {
   ACESFilmicToneMapping, BoxGeometry,
   BufferGeometry,
-  Camera,
+  Camera, DirectionalLight,
   Material,
   Mesh, MeshBasicMaterial,
   Object3D,
@@ -12,25 +12,27 @@ import {
   WebGLRenderer
 } from 'three';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+import GUI from 'lil-gui';
 
-interface ViewPortSize {
+export interface SceneParameters {
   width: number;
   height: number;
+  orbitControls: boolean;
+  debugMenu: boolean;
 }
 
 export class WebGlScene {
+  private parameters: SceneParameters;
+
   private readonly scene: Scene;
   private readonly camera: Camera;
-  private viewPortSize: ViewPortSize;
   private renderer: WebGLRenderer;
 
   private controls?: OrbitControls;
+  private guiDebugMenu: GUI;
 
-  constructor(canvas: HTMLCanvasElement, viewPortWidth: number, viewPortHeight: number) {
-    this.viewPortSize = {
-      width: viewPortWidth,
-      height: viewPortHeight
-    };
+  constructor(canvas: HTMLCanvasElement, parameters: SceneParameters) {
+    this.parameters = parameters;
 
     // Scene
     this.scene = new Scene();
@@ -38,7 +40,7 @@ export class WebGlScene {
     // Camera
     this.camera = new PerspectiveCamera(
       75,
-      this.viewPortSize.width / this.viewPortSize.height,
+      this.parameters.width / this.parameters.height,
       0.1,
       100
     );
@@ -46,11 +48,17 @@ export class WebGlScene {
     this.scene.add(this.camera);
 
     // Controls (optional)
-    this.controls = new OrbitControls(this.camera, canvas);
+    if (parameters.orbitControls) {
+      this.controls = new OrbitControls(this.camera, canvas);
+    }
+    // Debug menu (optional)
+    if (parameters.debugMenu) {
+      this.guiDebugMenu = new GUI();
+    }
 
     // Renderer
     this.renderer = new WebGLRenderer({canvas}); // TODO decide if need to set 'antialias: true'
-    this.renderer.setSize(this.viewPortSize.width, this.viewPortSize.height);
+    this.renderer.setSize(this.parameters.width, this.parameters.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     // Color and lights config
@@ -90,7 +98,7 @@ export class WebGlScene {
 
   onFrame(): void {
     // Update controls
-    this.controls.update();
+    this.controls?.update();
 
     // Render
     this.renderer.render(this.scene, this.camera);
@@ -101,17 +109,17 @@ export class WebGlScene {
 
   onResize(width: number, height: number): void {
     // Update sizes
-    this.viewPortSize.width = width;
-    this.viewPortSize.height = height;
+    this.parameters.width = width;
+    this.parameters.height = height;
 
     // Update camera
     // @ts-ignore
-    this.camera.aspect = this.viewPortSize.width / this.viewPortSize.height;
+    this.camera.aspect = this.parameters.width / this.parameters.height;
     // @ts-ignore
     this.camera.updateProjectionMatrix();
 
     // Update renderer
-    this.renderer.setSize(this.viewPortSize.width, this.viewPortSize.height);
+    this.renderer.setSize(this.parameters.width, this.parameters.height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   }
 
@@ -121,5 +129,13 @@ export class WebGlScene {
       new MeshBasicMaterial({color: 'red'})
     );
     this.scene.add(box);
+  }
+
+  addLights(): void {
+    const directionalLight = new DirectionalLight('#ff68cc', 3);
+    directionalLight.position.set(0.25, 3, -2.25);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.camera.far = 15;
+    directionalLight.shadow.mapSize.set(1024, 1024);
   }
 }
