@@ -43,7 +43,7 @@ export class AboutComponent implements OnInit, OnDestroy {
 
     const box = new Box({
       width: 1, height: 1, depth: 1
-    }, 'red');
+    }, '#ff0000');
     this.scene.addElement(box);
   }
 }
