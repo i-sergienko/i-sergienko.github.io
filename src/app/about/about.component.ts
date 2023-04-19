@@ -1,6 +1,6 @@
 import {Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {WebGlScene} from '../3d-scene/scene';
-import {Box, DirectionalLighting} from '../3d-scene/element';
+import {Box, DirectionalLighting, Plane, Smoke} from '../3d-scene/element';
 import {Vector3} from 'three';
 
 @Component({
@@ -45,5 +45,11 @@ export class AboutComponent implements OnInit, OnDestroy {
       width: 1, height: 1, depth: 1
     }, '#ff0000');
     this.scene.addElement(box);
+
+    const plane = new Plane({width: 200, height: 200}, '#00ffff');
+    this.scene.addElement(plane);
+
+    const fog = new Smoke('#ff68cc', 1, 15);
+    this.scene.addElement(fog);
   }
 }

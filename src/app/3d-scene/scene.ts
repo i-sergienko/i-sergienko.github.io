@@ -74,6 +74,9 @@ export class WebGlScene {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFSoftShadowMap;
 
+    // TODO manage through config
+    this.renderer.setClearColor('#ff68cc'); // Match fog color
+
     setTimeout(() => this.onFrame(), 1);
   }
 
