@@ -35,7 +35,6 @@ export class WebGlScene {
   private renderer: WebGLRenderer;
 
   private controls: OrbitControls | null = null;
-  private guiDebugMenu: GUI | null = null;
 
   constructor(canvas: HTMLCanvasElement, parameters: SceneParameters) {
     this.parameters = parameters;
@@ -50,16 +49,11 @@ export class WebGlScene {
       0.1,
       100
     );
-    this.camera.position.set(4, 1, -4); // TODO decide how to initialize
     this.scene.add(this.camera);
 
     // Controls (optional)
     if (parameters.orbitControls) {
       this.controls = new OrbitControls(this.camera, canvas);
-    }
-    // Debug menu (optional)
-    if (parameters.debugMenu) {
-      this.guiDebugMenu = new GUI();
     }
 
     // Renderer
@@ -73,9 +67,6 @@ export class WebGlScene {
     // Shadows
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFSoftShadowMap;
-
-    // TODO manage through config
-    this.renderer.setClearColor('#ff68cc'); // Match fog color
 
     setTimeout(() => this.onFrame(), 1);
   }
@@ -132,10 +123,7 @@ export class WebGlScene {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   }
 
-  addElement(element: SceneElement): void {
-    element.addToScene(this.scene);
-    if (this.guiDebugMenu !== null) {
-      element.setDebugParameters(this.guiDebugMenu);
-    }
+  configure(block: (scene: Scene, camera: Camera, renderer: WebGLRenderer) => void): void {
+    block(this.scene, this.camera, this.renderer);
   }
 }
