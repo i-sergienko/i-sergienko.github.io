@@ -10,8 +10,6 @@ import {
   MeshStandardMaterial,
   PlaneGeometry, Vector3
 } from "three";
-import GUI from 'lil-gui';
-import {group} from "@angular/animations";
 
 @Component({
   selector: 'app-about',
@@ -23,8 +21,6 @@ export class AboutComponent implements OnInit, OnDestroy {
   canvas: ElementRef<HTMLCanvasElement>;
 
   private scene?: WebGlScene;
-
-  // private debugMenu: GUI;
 
   constructor() {
     this.scene = null;
@@ -97,19 +93,8 @@ export class AboutComponent implements OnInit, OnDestroy {
 
       baseGroup.add(light);
 
-      const lightHelper = new DirectionalLightHelper(light);
-      baseGroup.add(lightHelper);
-
-      // debugMenu.add(light.position, 'x').min(-10).max(10).step(0.01).name('Light X');
-      // debugMenu.add(light.position, 'y').min(-10).max(10).step(0.01).name('Light y');
-      // debugMenu.add(light.position, 'z').min(-10).max(10).step(0.01).name('Light Z');
-
       camera.position.set(-5.558299395618101, 4.147773446882737, 0.8802921323608275);
       camera.rotation.set(-2.5785674837792913, -0.4604240868952921, -2.868169165856609);
-
-      // debugMenu.add(camera.position, 'x').min(-10).max(10).step(0.01).name('Camera X');
-      // debugMenu.add(camera.position, 'y').min(-10).max(10).step(0.01).name('Camera Y');
-      // debugMenu.add(camera.position, 'z').min(-10).max(10).step(0.01).name('Camera Z');
 
       let elapsedTime = 0;
       return (delta: number) => {
