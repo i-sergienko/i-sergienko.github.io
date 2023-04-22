@@ -1,7 +1,7 @@
 import {
   ACESFilmicToneMapping,
   BufferGeometry,
-  Camera,
+  Camera, Clock,
   Material,
   Mesh,
   Object3D,
@@ -33,8 +33,13 @@ export class WebGlScene {
   private readonly scene: Scene;
   private readonly camera: Camera;
   private renderer: WebGLRenderer;
+  private clock: Clock;
 
   private controls: OrbitControls | null = null;
+  private elapsedTime = 0;
+
+  private frameAction: (delta: number) => void = (delta: number) => {
+  };
 
   constructor(canvas: HTMLCanvasElement, parameters: SceneParameters) {
     this.parameters = parameters;
@@ -68,6 +73,9 @@ export class WebGlScene {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFSoftShadowMap;
 
+    // Clock
+    this.clock = new Clock();
+
     setTimeout(() => this.onFrame(), 1);
   }
 
@@ -97,8 +105,14 @@ export class WebGlScene {
   }
 
   onFrame(): void {
+    const elapsedTime = this.clock.getElapsedTime();
+    const delta = elapsedTime - this.elapsedTime;
+    this.elapsedTime = elapsedTime;
+
     // Update controls
     this.controls?.update();
+
+    this.frameAction(delta); // TODO
 
     // Render
     this.renderer.render(this.scene, this.camera);
@@ -123,7 +137,7 @@ export class WebGlScene {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   }
 
-  configure(block: (scene: Scene, camera: Camera, renderer: WebGLRenderer) => void): void {
-    block(this.scene, this.camera, this.renderer);
+  configure(block: (scene: Scene, camera: Camera, renderer: WebGLRenderer) => ((delta: number) => void)): void {
+    this.frameAction = block(this.scene, this.camera, this.renderer);
   }
 }
