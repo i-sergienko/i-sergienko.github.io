@@ -20,14 +20,8 @@ export class ThemeSwitcherService {
     this.themes.dark = {
       name: 'dark',
       cssPath: '/assets/css/darkly.min.css',
-      nextThemeName: 'nuclear',
-      nextThemeIcon: faMoon
-    };
-    this.themes.nuclear = {
-      name: 'nuclear',
-      cssPath: '/assets/css/nuclear.min.css',
       nextThemeName: 'light',
-      nextThemeIcon: faRadiationAlt
+      nextThemeIcon: faMoon
     };
   }
 
