@@ -1,15 +1,17 @@
 import {Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {WebGlScene} from '../3d-scene/scene';
 import {
+  AmbientLight,
   BoxGeometry,
   DirectionalLight,
-  DirectionalLightHelper,
   DoubleSide,
-  Fog, Group,
+  Fog,
+  Group,
   Mesh,
   MeshStandardMaterial,
-  PlaneGeometry, Vector3
-} from "three";
+  PlaneGeometry,
+} from 'three';
+import {GLTF, GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
 
 @Component({
   selector: 'app-about',
@@ -34,7 +36,9 @@ export class AboutComponent implements OnInit, OnDestroy {
       orbitControls: false,
       debugMenu: true
     });
-    this.buildScene();
+    this.buildScene()
+      .then(() => console.log('Scene built'))
+      .catch(err => console.log(`Error building scene: ${err}`));
   }
 
   ngOnDestroy(): void {
@@ -45,14 +49,23 @@ export class AboutComponent implements OnInit, OnDestroy {
     this.scene.onResize(window.innerWidth, window.innerHeight);
   }
 
-  private buildScene(): void {
+  private async buildScene(): Promise<void> {
+    const shibaModel = await this.loadModel('/assets/models/shiba_lowpoly/scene.gltf');
+    shibaModel.scene.position.x -= 3;
+    shibaModel.scene.position.z += 9;
+    shibaModel.scene.position.y += 2;
+    shibaModel.scene.scale.set(2, 2, 2);
+    shibaModel.scene.rotateY(-Math.PI * 0.85);
+
     // const debugMenu = this.debugMenu;
     this.scene.configure((scene, camera, renderer) => {
       renderer.setClearColor('#ff68cc'); // Match fog color
-      scene.fog = new Fog('#ff68cc', 1, 15);
+      scene.fog = new Fog('#ff68cc', 1, 17);
 
       const baseGroup = new Group();
       scene.add(baseGroup);
+
+      scene.add(shibaModel.scene);
 
       const plane = new Mesh(
         new PlaneGeometry(100, 100, 1, 1),
@@ -93,6 +106,9 @@ export class AboutComponent implements OnInit, OnDestroy {
 
       baseGroup.add(light);
 
+      const ambientLight = new AmbientLight('#ffffff', 1);
+      baseGroup.add(ambientLight);
+
       camera.position.set(-5.558299395618101, 4.147773446882737, 0.8802921323608275);
       camera.rotation.set(-2.5785674837792913, -0.4604240868952921, -2.868169165856609);
 
@@ -105,5 +121,11 @@ export class AboutComponent implements OnInit, OnDestroy {
         }
       };
     });
+  }
+
+  private async loadModel(path: string): Promise<GLTF> {
+    const loader: GLTFLoader = new GLTFLoader();
+
+    return loader.loadAsync(path);
   }
 }
