@@ -57,7 +57,6 @@ export class AboutComponent implements OnInit, OnDestroy {
     shibaModel.scene.scale.set(2, 2, 2);
     shibaModel.scene.rotateY(-Math.PI * 0.85);
 
-    // const debugMenu = this.debugMenu;
     this.scene.configure((scene, camera, renderer) => {
       renderer.setClearColor('#ff68cc'); // Match fog color
       scene.fog = new Fog('#ff68cc', 1, 17);
@@ -70,7 +69,7 @@ export class AboutComponent implements OnInit, OnDestroy {
       const plane = new Mesh(
         new PlaneGeometry(100, 100, 1, 1),
         new MeshStandardMaterial({
-          color: '#00ffff',
+          color: '#7CFC00',
           side: DoubleSide
         })
       );
@@ -79,7 +78,7 @@ export class AboutComponent implements OnInit, OnDestroy {
 
       const boxGeometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
       const boxMaterial = new MeshStandardMaterial({
-        color: '#00ff00'
+        color: '#ad1800'
       });
       const xOffset = -10;
       const boxes: Mesh[] = [];
@@ -95,7 +94,7 @@ export class AboutComponent implements OnInit, OnDestroy {
         boxes.push(box);
       }
 
-      const light = new DirectionalLight('#ff68cc', 3);
+      const light = new DirectionalLight('#FDB813', 3);
       light.castShadow = true;
       light.shadow.camera.far = 20;
       light.shadow.mapSize.set(1024, 1024);
